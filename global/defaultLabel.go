@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: defaultLabel.go
+ */
+
 package global
 
 import (
@@ -26,25 +32,36 @@ type LabelTool struct {
 
 func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 	view = strings.ToLower(view)
-	d = make([]LabelTool, 0)
 	d = []LabelTool{
-		{Type: "group", Id: "t", Name: "时间标签", Group: "t", Color: "palevioletred", GRadio: true, GOpen: true},
+		{Type: "group", Id: "t", Name: "切面标签", Group: "t", Color: "palevioletred", GRadio: true, GOpen: true},
 		{Type: "group", Id: "c", Name: "通用标签", Group: "c", Color: "palevioletred", GRadio: false, GOpen: false},
 		{Type: "group", Id: "s", Name: "异常标签", Group: "s", Color: "palevioletred", GRadio: false, GOpen: false},
 		{Type: "group", Id: "q", Name: "质量标签", Group: "q", Color: "palevioletred", GRadio: true, GOpen: true},
 
-		{Type: "radio", Group: "t", Domain: "frame", Id: "SSMQ", Name: "收缩末期", Value: "SSMQ"},
-		{Type: "radio", Group: "t", Domain: "frame", Id: "SZMQ", Name: "舒张末期", Value: "SZMQ"},
-		{Type: "radio", Group: "t", Domain: "frame", Id: "SPEC", Name: "特殊时间", Value: "INPUT"},
 		{Type: "radio", Group: "q", Domain: "global", Value: "5", Id: "FQ5", Name: "优秀"},
 		{Type: "radio", Group: "q", Domain: "global", Value: "4", Id: "FQ4", Name: "良好"},
 		{Type: "radio", Group: "q", Domain: "global", Value: "3", Id: "FQ3", Name: "一般"},
 		{Type: "radio", Group: "q", Domain: "global", Value: "2", Id: "FQ2", Name: "差"},
 		{Type: "radio", Group: "q", Domain: "global", Value: "1", Id: "FQ1", Name: "不可评估"},
 	}
+	switch strings.ToLower(view) {
+	case "3v", "3vt":
+		d = append(d, []LabelTool{
+			{Type: "radio", Group: "t", Domain: "frame", Id: "3V", Name: "三血管", Value: "3V"},
+			{Type: "radio", Group: "t", Domain: "frame", Id: "3VT", Name: "三血管气管", Value: "3VT"},
+			{Type: "radio", Group: "t", Domain: "frame", Id: "SPEC", Name: "其他", Value: "INPUT"},
+		}...)
+
+	default:
+		d = append(d, []LabelTool{
+			{Type: "radio", Group: "t", Domain: "frame", Id: "SSMQ", Name: "收缩末期", Value: "SSMQ"},
+			{Type: "radio", Group: "t", Domain: "frame", Id: "SZMQ", Name: "舒张末期", Value: "SZMQ"},
+			{Type: "radio", Group: "t", Domain: "frame", Id: "SPEC", Name: "特殊时间", Value: "INPUT"},
+		}...)
+	}
 
 	switch strings.ToLower(view) {
-	case "4ap":
+	case "4ap", "aa":
 		d = append(d, []LabelTool{
 			DefaultUltrasonicLabel("XG"), DefaultUltrasonicLabel("JZ"), DefaultUltrasonicLabel("DAO"),
 			DefaultUltrasonicLabel("LA"), DefaultUltrasonicLabel("LV"), DefaultUltrasonicLabel("RA"),
@@ -143,9 +160,10 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 		d = append(d, []LabelTool{
 			DefaultUltrasonicLabel("XG"), DefaultUltrasonicLabel("JZ"), DefaultUltrasonicLabel("DA"),
 			DefaultUltrasonicLabel("真肋骨1"), DefaultUltrasonicLabel("真肋骨2"), DefaultUltrasonicLabel("DAO"),
-			DefaultUltrasonicLabel("AO"), DefaultUltrasonicLabel("PA"), DefaultUltrasonicLabel("SVC"),
+			DefaultUltrasonicLabel("AO"), DefaultUltrasonicLabel("PA"),
 			DefaultUltrasonicLabel("T"), DefaultUltrasonicLabel("右上腔静脉"), DefaultUltrasonicLabel("无名静脉"),
 			DefaultUltrasonicLabel("奇静脉"), DefaultUltrasonicLabel("Thymus")}...)
+		//DefaultUltrasonicLabel("SVC"),
 
 		d = append(d, []LabelTool{
 			{Type: "com", Group: "s", Color: "#FFA", Id: "YCXG", Name: "异常血管"},

@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: label.go
+ */
+
 package module
 
 import (
@@ -67,7 +73,6 @@ type LabelReviewInfo struct {
 //	}
 //}
 
-//func LabelCreate(mid,uid int,)
 func LabelGetRealname(i interface{}) (authorName, reviewName string) {
 	mi, err := database.MediaGet(i)
 	if err != nil {

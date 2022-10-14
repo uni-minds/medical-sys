@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: group.go
+ */
+
 package module
 
 import (
@@ -119,7 +125,7 @@ func GroupDel(i interface{}) error {
 func GroupGetAll() map[int][]string {
 	gis, err := database.GroupGetAll()
 	if err != nil {
-		log("i", "E;GroupGetAll:", err.Error())
+		log("e", "GroupGetAll:", err.Error())
 		return nil
 	}
 

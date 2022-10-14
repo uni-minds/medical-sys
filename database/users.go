@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: users.go
+ */
+
 package database
 
 import (
@@ -188,6 +194,7 @@ func UserAddGroup(uid, gid int) error {
 	gids = tools.RemoveDuplicateInt(gids)
 	return userUpdateGroups(uid, gids)
 }
+
 func UserRemoveGroup(uid, gid int) error {
 	gids, err := UserGetGroups(uid)
 	if err != nil {

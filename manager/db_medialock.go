@@ -1,9 +1,7 @@
-/**
- * @Author: Liu Xiangyu
- * @Description:
- * @File:  db_medialock
- * @Version: 1.0.0
- * @Date: 2020/4/9 13:23
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: db_medialock.go
  */
 
 package manager
@@ -28,7 +26,7 @@ type MediaAccess struct {
 var mediaAccessLockTime = 5 * time.Second
 var mediaAccess MediaAccess
 
-func mediaAccessLockInit() {
+func init() {
 	mediaAccess.DB = make(map[string]MediaLocker, 0)
 }
 func MediaAccessSetLock(mediaHash string, uid int, tp string) (status MediaLocker, err error) {

@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: media.go
+ */
+
 package module
 
 import (
@@ -50,46 +56,47 @@ func MediaGetSummary(mid int) (summary MediaSummaryInfo, err error) {
 	summary.Hash = mi.Hash
 	summary.DisplayName = mi.DisplayName
 	summary.Memo = mi.Memo
+	summary.Views = mi.IncludeViews
 
-	// 切面再识别
-	switch mi.IncludeViews {
-	case "", "null", "[]":
-		view := MediaAnalysisView(mi.DisplayName)
-		summary.Views = view
-
-		if view != "" {
-			database.MediaUpdateViews(mid, view)
-		}
-
-	default:
-		view := mi.IncludeViews
-		fmt.Println("analysis:", mi.IncludeViews)
-		if view[0] == '[' {
-			if strings.Contains(view, ",") {
-				fmt.Println("cannot convert:", mi.Mid)
-			} else {
-				view = view[2 : len(view)-2]
-				fmt.Println("->", view)
-				database.MediaUpdateViews(mid, view)
-			}
-		}
-		summary.Views = view
-	}
+	//切面再识别
+	//switch mi.IncludeViews {
+	//case "", "null", "[]":
+	//	view := MediaAnalysisView(mi.DisplayName)
+	//	summary.Views = view
+	//
+	//	if view != "" {
+	//		database.MediaUpdateViews(mid, view)
+	//	}
+	//
+	//default:
+	//	view := mi.IncludeViews
+	//	fmt.Println("analysis:", mi.IncludeViews)
+	//	if view[0] == '[' {
+	//		if strings.Contains(view, ",") {
+	//			fmt.Println("cannot convert:", mi.Mid)
+	//		} else {
+	//			view = view[2 : len(view)-2]
+	//			fmt.Println("->", view)
+	//			database.MediaUpdateViews(mid, view)
+	//		}
+	//	}
+	//	summary.Views = view
+	//}
 	// 关键字再识别
-	switch mi.Keywords {
-	case "", "null", "[]":
-		keywords := MediaAnalysisKeywords(mi.DisplayName)
-		if len(keywords) > 0 {
-			_ = database.MediaSetKeywords(mid, keywords)
-			jb, _ := json.Marshal(keywords)
-			summary.Keywords = string(jb)
-		} else {
-			summary.Keywords = "[]"
-		}
-
-	default:
-		summary.Keywords = mi.Keywords
-	}
+	//switch mi.Keywords {
+	//case "", "null", "[]":
+	//	keywords := MediaAnalysisKeywords(mi.DisplayName)
+	//	if len(keywords) > 0 {
+	//		_ = database.MediaSetKeywords(mid, keywords)
+	//		jb, _ := json.Marshal(keywords)
+	//		summary.Keywords = string(jb)
+	//	} else {
+	//		summary.Keywords = "[]"
+	//	}
+	//
+	//default:
+	//	summary.Keywords = mi.Keywords
+	//}
 	// 媒体信息再识别
 	summary.Duration = mi.Duration
 	summary.Frames = mi.Frames
@@ -249,7 +256,7 @@ func MediaImport(input, displayName, memo string, ownerUid int) (mi database.Med
 	}
 
 	rawfile := path.Join(rawroot, filefull)
-	if err = tools.CopyFile(input, rawfile); err != nil {
+	if err = tools.MoveFile(input, rawfile); err != nil {
 		return
 	}
 
@@ -331,12 +338,12 @@ func MediaImportUsVideoOgv(srcFile, destFolder, dispname, view, descript, fcode,
 		_, err = os.Stat(destFile)
 		if err == nil {
 			data := strings.Split(destFilename, ".")
-			destFile = filepath.Join(destFolder, data[0]+"_"+tools.GenSaltString(5, "")+".ogv")
+			destFile = filepath.Join(destFolder, data[0]+"_"+tools.RandString0f(6)+".ogv")
 		} else {
 			break
 		}
 	}
-	_ = tools.CopyFile(srcFile, destFile)
+	_ = tools.MoveFile(srcFile, destFile)
 
 	width, height, frames, duration, encoder, err := MediaInfo(srcFile)
 	mi = database.MediaInfo{

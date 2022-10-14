@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: media.go
+ */
+
 package database
 
 import (
@@ -5,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"uni-minds.com/liuxy/medical-sys/global"
 )
 
@@ -238,7 +245,7 @@ func MediaGetViews(mid int) (views []string, err error) {
 	case "", "[]", "null":
 		return make([]string, 0), nil
 	default:
-		err = json.Unmarshal([]byte(mi.IncludeViews), &views)
+		views = strings.Split(mi.IncludeViews, ",")
 		return
 	}
 }
@@ -256,14 +263,15 @@ func MediaAddView(mid int, view string) error {
 	return MediaSetViews(mid, views)
 }
 func MediaSetViews(mid int, views []string) error {
-	if views == nil {
-		views = make([]string, 0)
+	viewStr := ""
+	for _, view := range views {
+		if viewStr == "" {
+			viewStr = view
+		} else {
+			viewStr = fmt.Sprintf("%s,%s", viewStr, view)
+		}
 	}
-	jb, err := json.Marshal(views)
-	if err != nil {
-		return err
-	}
-	return MediaUpdateViews(mid, string(jb))
+	return MediaUpdateViews(mid, viewStr)
 }
 func MediaUpdateViews(mid int, viewsStr string) error {
 	data := map[string]interface{}{"includeviews": viewsStr}

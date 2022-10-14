@@ -2,7 +2,6 @@
  * Copyright (c) 2019-2020
  * Author: LIU Xiangyu
  * File: defaultMenu.go
- * Description:
  */
 
 package global

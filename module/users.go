@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: users.go
+ */
+
 package module
 
 import (
@@ -347,7 +353,7 @@ func UserSetPassword(i interface{}, password string) error {
 		return err
 	}
 
-	salt := tools.GenSaltString(20, "")
+	salt := tools.RandStringFromAlphabet(20, "")
 	password = tools.GetStringMD5(password + salt)
 	return database.UserUpdatePassword(u.Uid, password, salt)
 }

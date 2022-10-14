@@ -1,9 +1,7 @@
-/**
- * @Author: Liu Xiangyu
- * @Description:
- * @File:  mediaTools
- * @Version: 1.0.0
- * @Date: 2020/3/31 01:01
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: mediaTools.go
  */
 
 package module

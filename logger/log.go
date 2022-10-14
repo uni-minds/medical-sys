@@ -2,7 +2,6 @@
  * Copyright (c) 2019-2020
  * Author: LIU Xiangyu
  * File: log.go
- * Description:
  */
 
 package logger
@@ -51,7 +50,7 @@ func Init(logFile string, verbose bool) {
 		logger.SetOutput(fp)
 	}
 
-	Write(tag, "t", "start")
+	//Write(tag, "t", "start")
 }
 
 func Exit() {

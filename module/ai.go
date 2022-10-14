@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: ai.go
+ */
+
 package module
 
 import (
@@ -29,13 +35,13 @@ func RunAlgo(algo, params string) (aid string, err error) {
 }
 
 func algoCctaGetFeatures() (aid string, err error) {
-	aid = tools.RandString(32)
+	aid = tools.RandString0f(32)
 	log("w", "exec: ccta extra")
 	return aid, nil
 }
 
 func algoCtaGetFeatures() (aid string, err error) {
-	aid = tools.RandString(32)
+	aid = tools.RandString0f(32)
 	log("w", "exec: cta extra")
 	return aid, nil
 }

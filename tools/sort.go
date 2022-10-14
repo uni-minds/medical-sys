@@ -1,14 +1,15 @@
-/**
- * @Author: Liu Xiangyu
- * @Description:
- * @File:  sort
- * @Version: 1.0.0
- * @Date: 2020/4/8 12:25
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: sort.go
  */
 
 package tools
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 type mapSorter []MapItem
 type MapItem struct {
@@ -51,4 +52,26 @@ func (ms mapSorter) Less(i, j int) bool {
 			return false
 		}
 	}
+}
+
+func RemoveDuplicateInt(a []int) []int {
+	sort.Ints(a)
+	i := 0
+	for j := 1; j < len(a); j++ {
+		if a[i] != a[j] {
+			i++
+			a[i] = a[j]
+		}
+	}
+	return a[:i+1]
+}
+
+func RemoveElementInt(a []int, ele int) []int {
+	a = RemoveDuplicateInt(a)
+	for k, v := range a {
+		if ele == v {
+			return append(a[:k], a[k+1:]...)
+		}
+	}
+	return a
 }

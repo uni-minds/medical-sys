@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: config.go
+ */
+
 package global
 
 import (
@@ -7,7 +13,7 @@ import (
 )
 
 var config AppSettings
-var configFile = "config.yaml"
+var configFile = "/usr/local/uni-ledger/medical-sys/config.yaml"
 
 type AppSettings struct {
 	UserRegisterEnable bool

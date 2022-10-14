@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: db_token.go
+ */
+
 package manager
 
 import (
@@ -19,12 +25,12 @@ type TokenAccess struct {
 
 var tokenAccess TokenAccess
 
-func tokenInit() {
+func init() {
 	tokenAccess.DB = make(map[int]TokenInfo, 0)
 }
 
 func TokenGenerater() string {
-	return tools.GenSaltString(16, "0123456789abcdef")
+	return tools.RandString0f(16)
 }
 
 func TokenNew(uid int) (token string) {

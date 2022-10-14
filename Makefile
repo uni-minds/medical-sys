@@ -10,13 +10,17 @@ clean:
 build/medical_sys: main.go
 	${GOBUILD} -o $@ -ldflags ${FLAGS} $^
 
-build/medical_sys_ctl: main_tools.go
+build/medical_sys_tools: main_tools/main.go
 	${GOBUILD} -o $@ $^
 
 run:build/medical_sys
 	$^ -v -debug
 
-build:build/medical_sys build/medical_sys_ctl
+tools:build/medical_sys_tools
+
+core:build/medical_sys
+
+build:core tools
 
 install: build
 	mkdir -p /usr/local/uni-ledger/medical-sys

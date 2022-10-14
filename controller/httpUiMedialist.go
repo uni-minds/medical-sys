@@ -1,3 +1,9 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: httpUiMedialist.go
+ */
+
 package controller
 
 import (

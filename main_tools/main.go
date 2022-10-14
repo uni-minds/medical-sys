@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019-2020
  * Author: LIU Xiangyu
- * File: main_tools.go
+ * File: main.go
  */
 
 package main
@@ -11,6 +11,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mattn/go-runewidth"
+	"github.com/nsf/termbox-go"
+	"github.com/schollz/progressbar/v3"
 	"io/ioutil"
 	"os"
 	"path"
@@ -21,10 +24,13 @@ import (
 	"time"
 	"uni-minds.com/liuxy/medical-sys/database"
 	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/logger"
 	"uni-minds.com/liuxy/medical-sys/module"
+	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 func main() {
+	logger.Init("", true)
 	if len(os.Args) > 1 {
 		var p []string
 		for _, arg := range os.Args[1:] {
@@ -179,21 +185,10 @@ func parseUser(p []string) {
 		break
 
 	case "list":
-		uis := module.UserGetAll()
-		keys := make([]int, 0)
-		for k, _ := range uis {
-			keys = append(keys, k)
-		}
-		sort.Ints(keys)
-		fmt.Printf("%-3s | %-12s | %-4s | %-20s | %-20s | %-3s | %s\n", "UID", "Username", "Act", "Reg", "Login", "LCo", "Realname")
-		for _, uid := range keys {
-			ui := uis[uid]
-			fmt.Printf("%-3d | %-12s | %-4d | %-20s | %-20s | %-3d | %s\n", uid, ui.Username, ui.Activate, ui.RegisterTime, ui.LoginTime, ui.LoginCount, ui.Realname)
-		}
-		break
+		uis, _ := database.UserGetAll()
+		printUsers(uis, 100)
 	}
 	return
-
 }
 
 func parseGroup(p []string) {
@@ -232,18 +227,8 @@ func parseGroup(p []string) {
 		}
 		break
 	case "list":
-		di := module.GroupGetAll()
-		var keys = make([]int, 0)
-		for i, _ := range di {
-			keys = append(keys, i)
-		}
-		sort.Ints(keys)
-		for _, idx := range keys {
-			data := di[idx]
-			fmt.Printf("%-2d | %-15s | %s\n", idx, data[0], data[1])
-			fmt.Printf(" - %s\n", data[2])
-		}
-		break
+		gis, _ := database.GroupGetAll()
+		printGroups(gis, 100)
 	case "remove":
 		group := p[1]
 		fmt.Println("Remove group [", group, "]")
@@ -300,10 +285,12 @@ func parseMedia(p []string) {
 		fmt.Println("media load from l to l1 l2 l3 l4\n" +
 			"media list\n" +
 			"media list l\n" +
-			"media getByHash h1\n" +
+			"media find hash h1\n" +
 			"media label del m1 m2...\n" +
 			"media label setByMid m1 progress 1-7\n" +
-			"media label setByHash h1 progress 1-7")
+			"media label setByHash h1 progress 1-7\n" +
+			"media move target\n" +
+			"media check")
 		return
 	}
 
@@ -354,56 +341,80 @@ func parseMedia(p []string) {
 		}
 
 	case "list":
-		mids := make([]int, 0)
 		switch len(p) {
-		case 2:
-			mis := module.MediaGetAll()
-			for k, _ := range mis {
-				mids = append(mids, k)
-			}
-			sort.Ints(mids)
+		case 1:
+			mis, _ := database.MediaGetAll()
+			printMedias(mis)
+
 		default:
-			gid := module.GroupGetGid(p[2])
+			mids := make([]int, 0)
+			gid := module.GroupGetGid(p[1])
 			mids = module.GroupGetMedia(gid)
+
+			var mis []database.MediaInfo
+			for _, mid := range mids {
+				mi, _ := database.MediaGet(mid)
+				mis = append(mis, mi)
+			}
+			printMedias(mis)
+		}
+		break
+
+	case "find":
+		if len(p) < 3 {
+			fmt.Println("media find hash HASH")
+			return
+		}
+
+		switch p[1] {
+		case "hash":
+			mediaHash := p[2]
+			mi, err := database.MediaGet(mediaHash)
+			if err != nil {
+				fmt.Println("E:", err.Error())
+				return
+			}
+			printMedias([]database.MediaInfo{mi})
+
+			if _, err = os.Stat(mi.Path); err != nil {
+				fmt.Println("File check: not found")
+			} else {
+				fmt.Println("File check: OK")
+			}
+			return
+
+		default:
+
+			mids := make([]int, 0)
+			m1 := make(map[int]string) //mid到hash
+			m2 := make(map[int]int)    //mid到uid
+			m3 := make(map[int]string) //mid到name
+			for i := 2; i < len(p); i++ {
+				hash := p[i]
+				mi, err := database.MediaGet(hash)
+				if err != nil {
+					fmt.Println("E:", err.Error())
+					continue
+				}
+				mids = append(mids, mi.Mid)
+				m1[mi.Mid] = hash
+				var uid int
+				uid = mi.LabelAuthorUid
+				m2[mi.Mid] = uid
+				user, err := database.UserGet(uid)
+				if err != nil {
+					fmt.Println("E:", err.Error())
+					continue
+				}
+				m3[mi.Mid] = user.Realname
+			}
 			sort.Ints(mids)
-		}
-
-		for _, mid := range mids {
-			mi, _ := database.MediaGet(mid)
-			fmt.Printf("%-6d| %-32s | %-40s | %-20s\n", mi.Mid, mi.Hash, mi.DisplayName, mi.IncludeViews)
-		}
-		break
-
-	case "getByHash":
-		mids := make([]int, 0)
-		m1 := make(map[int]string) //mid到hash
-		m2 := make(map[int]int)    //mid到uid
-		m3 := make(map[int]string) //mid到name
-		for i := 2; i < len(p); i++ {
-			hash := p[i]
-			mi, err := database.MediaGet(hash)
-			if err != nil {
-				fmt.Println("E:", err.Error())
-				continue
+			for i := 0; i < len(mids); i++ {
+				mid := mids[i]
+				fmt.Printf("%d/%s/%d/%s\n", mid, m1[mid], m2[mid], m3[mid])
 			}
-			mids = append(mids, mi.Mid)
-			m1[mi.Mid] = hash
-			var uid int
-			uid = mi.LabelAuthorUid
-			m2[mi.Mid] = uid
-			user, err := database.UserGet(uid)
-			if err != nil {
-				fmt.Println("E:", err.Error())
-				continue
-			}
-			m3[mi.Mid] = user.Realname
+			break
 		}
-		sort.Ints(mids)
-		for i := 0; i < len(mids); i++ {
-			mid := mids[i]
-			fmt.Printf("%d/%s/%d/%s\n", mid, m1[mid], m2[mid], m3[mid])
-		}
-		break
 
 	case "label":
 		switch p[1] {
@@ -429,7 +440,7 @@ func parseMedia(p []string) {
 						fmt.Println("OK")
 					}
 				default:
-					fmt.Println("user ignore\n")
+					fmt.Println("user ignore")
 				}
 			}
 
@@ -516,8 +527,85 @@ func parseMedia(p []string) {
 			}
 		}
 		break
-	}
 
+	case "move":
+		target := global.GetAppSettings().SystemMediaPath
+		if len(p) > 1 && p[1] != "" {
+			target = p[1]
+		}
+
+		if target, err := filepath.Abs(target); err != nil {
+			fmt.Println("E:", err.Error())
+			return
+
+		} else if _, err = os.Stat(target); err != nil {
+			fmt.Println("E:", err.Error())
+			return
+		}
+
+		fmt.Printf("move media to %s\nwait 5 seconds to continue", target)
+		sleep(0)
+
+		mis, err := database.MediaGetAll()
+		if err != nil {
+			fmt.Println("E:", err.Error())
+			return
+		}
+
+		fmt.Println("total media:", len(mis))
+		for _, mi := range mis {
+			rel, err := filepath.Rel(target, mi.Path)
+			if err != nil {
+				fmt.Println(mi.Path, err.Error())
+			} else if rel[:1] == "." {
+				p := strings.Split(mi.Path, "media/us/")
+				if len(p) > 1 {
+					// e.g. /application/media/us/20200820-21H/27818-3675637-4C.ogv
+
+					srcFile := mi.Path
+					destFolder := path.Join(target, path.Dir(p[1]))
+					os.MkdirAll(destFolder, os.ModePerm)
+					destFile := path.Join(destFolder, path.Base(p[1]))
+
+					switch filepath.Ext(srcFile) {
+					case ".jpg":
+						fmt.Println("ignore jpg file:", srcFile)
+						continue
+
+					default:
+						if err := tools.MoveFile(srcFile, destFile); err != nil {
+							panic(err.Error())
+
+						}
+					}
+
+					if err := database.MediaUpdatePath(mi.Mid, destFile); err != nil {
+						fmt.Println(err.Error())
+						panic(err.Error())
+					}
+
+					fmt.Println("OK")
+				}
+			}
+		}
+
+	case "check":
+		fmt.Println("checking files in database")
+		mis, _ := database.MediaGetAll()
+		for _, mi := range mis {
+			file := mi.Path
+			_, err := os.Stat(file)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+
+			switch mi.IncludeViews {
+			case "[]", "null":
+				database.MediaUpdateViews(mi.Mid, "")
+
+			}
+		}
+	}
 }
 
 func parseLabel(p []string) {
@@ -659,9 +747,217 @@ func importFolder(srcFolder, destFolder string) error {
 
 	fmt.Printf("import media from %s => %s\nwaiting 5 seconds to continue", srcFolder, destFolder)
 
-	for i := 0; i < 5; i++ {
+	sleep(5)
+
+	return module.MediaImportFromJson(1, srcFolder, destFolder, data)
+}
+
+func sleep(sec int) {
+	for i := 0; i < sec; i++ {
 		fmt.Print(".")
 		time.Sleep(1 * time.Second)
 	}
-	return module.MediaImportFromJson(1, srcFolder, destFolder, data)
+}
+
+func printMedias(mis []database.MediaInfo) {
+	termbox.Init()
+	defer termbox.Close()
+
+	termbox.SetInputMode(termbox.InputEsc)
+	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+
+	termW, termH := termbox.Size()
+
+	lineRemains := 6
+	lineStart := 0
+	lineTotal := len(mis)
+
+	linePage := termH - lineRemains
+	pageTotal := lineTotal / linePage
+
+	pgb := progressbar.NewOptions(pageTotal, progressbar.OptionShowCount(), progressbar.OptionSetPredictTime(false), progressbar.OptionFullWidth())
+	pgb.Set(0)
+
+	termbox.Flush()
+
+	printMediasPage(mis[0:linePage], termW)
+
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Key {
+			case termbox.KeyArrowDown, termbox.KeySpace:
+				if lineTotal-lineStart+1 > linePage {
+					lineStart += linePage
+				} else {
+					continue
+				}
+
+			case termbox.KeyArrowUp:
+				if lineStart == 0 {
+					continue
+				} else if lineStart-linePage < 0 {
+					lineStart = 0
+				} else {
+					lineStart -= linePage
+				}
+
+			case termbox.KeyCtrlC, termbox.KeyEsc, termbox.KeyCtrlQ:
+				return
+
+			default:
+				log("w", "unknown press", termbox.EventKey)
+			}
+
+		case termbox.EventResize:
+			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+			termW, termH = termbox.Size()
+
+			linePage = termH - lineRemains
+			pageTotal = lineTotal / linePage
+			pgb.ChangeMax(pageTotal)
+			termbox.Flush()
+		}
+
+		pageCurrent := lineStart * (pageTotal + 1) / lineTotal
+		tools.ScreenClear()
+		pgb.Reset()
+		pgb.Set(pageCurrent)
+
+		if lineTotal-lineStart > linePage {
+			printMediasPage(mis[lineStart:lineStart+linePage], termW)
+		} else {
+			printMediasPage(mis[lineStart:], termW)
+		}
+	}
+}
+
+func printMediasPage(mis []database.MediaInfo, termWidth int) {
+	if len(mis) == 0 {
+		return
+	}
+
+	var lines []string
+	maxLineChars := termWidth - 2
+
+	for _, mi := range mis {
+		line := fmt.Sprintf("| %5d | %-4s | %s", mi.Mid, mi.IncludeViews, mi.Path)
+		lineWidth := runewidth.StringWidth(line)
+		lines = append(lines, line)
+
+		if lineWidth > maxLineChars {
+			maxLineChars = lineWidth
+		}
+	}
+
+	title := tools.LineBuilder(maxLineChars+2, "-")
+	fmt.Println("")
+	fmt.Println(title)
+	fmt.Printf("%s |\n", runewidth.FillRight("|  Mid  | View | Path", maxLineChars))
+	fmt.Println(title)
+
+	for _, line := range lines {
+		fmt.Printf("%s |\n", runewidth.FillRight(line, maxLineChars))
+	}
+
+	fmt.Println(title)
+}
+
+func printUsers(uis []database.UserInfo, termWidth int) {
+	var lines []string
+	maxLineChars := termWidth - 2
+
+	widthUN := 10
+	widthRN := 10
+
+	for _, ui := range uis {
+		un := runewidth.StringWidth(ui.Username)
+		rn := runewidth.StringWidth(ui.Realname)
+		if un > widthUN {
+			widthUN = un
+		}
+		if rn > widthRN {
+			widthRN = rn
+		}
+	}
+	fmt.Println(widthUN, widthRN)
+
+	for _, ui := range uis {
+		username := runewidth.FillRight(ui.Username, widthUN)
+		realname := runewidth.FillRight(ui.Realname, widthRN)
+		line := fmt.Sprintf("| %3d | %s |  %d  | %-20s | %-20s | %-3d | %s", ui.Uid, username, ui.Activate, ui.RegisterTime, ui.LoginTime, ui.LoginCount, realname)
+		lines = append(lines, line)
+		lineWidth := runewidth.StringWidth(line)
+		if lineWidth > maxLineChars {
+			maxLineChars = lineWidth
+		}
+	}
+	head := fmt.Sprintf("| UID | %s | Act | %-20s | %-20s | LCo | %s", runewidth.FillRight("Username", widthUN), "Reg", "Login", runewidth.FillRight("Realname", widthRN))
+	title := tools.LineBuilder(maxLineChars+2, "-")
+	tools.ScreenClear()
+	fmt.Println(title)
+	fmt.Printf("%s |\n", runewidth.FillRight(head, maxLineChars))
+	fmt.Println(title)
+	for _, line := range lines {
+		fmt.Printf("%s |\n", runewidth.FillRight(line, maxLineChars))
+	}
+	fmt.Println(title)
+}
+
+func printGroups(gis []database.GroupInfo, termWidth int) {
+	var lines []string
+	maxLineChars := termWidth - 2
+
+	widthGN := 10
+	widthDN := 10
+
+	for _, gi := range gis {
+		gn := runewidth.StringWidth(gi.GroupName)
+		dn := runewidth.StringWidth(gi.DisplayName)
+		if gn > widthGN {
+			widthGN = gn
+		}
+		if dn > widthDN {
+			widthDN = dn
+		}
+	}
+
+	for _, gi := range gis {
+		var userAndPerms map[string]int
+		var uidstr string
+
+		json.Unmarshal([]byte(gi.Users), &userAndPerms)
+
+		for uid, _ := range userAndPerms {
+			if uidstr == "" {
+				uidstr = uid
+			} else {
+				uidstr = fmt.Sprintf("%s %s", uidstr, uid)
+			}
+		}
+
+		groupname := runewidth.FillRight(gi.GroupName, widthGN)
+		dispname := runewidth.FillRight(gi.DisplayName, widthDN)
+		line := fmt.Sprintf("| %3d | %s | %s | %s", gi.Gid, groupname, dispname, uidstr)
+		lines = append(lines, line)
+		lineWidth := runewidth.StringWidth(line)
+		if lineWidth > maxLineChars {
+			maxLineChars = lineWidth
+		}
+	}
+	head := fmt.Sprintf("| GID | %s | %s | Users", runewidth.FillRight("Groupname", widthGN), runewidth.FillRight("Dispname", widthDN))
+	title := tools.LineBuilder(maxLineChars+2, "-")
+	tools.ScreenClear()
+	fmt.Println(title)
+	fmt.Printf("%s |\n", runewidth.FillRight(head, maxLineChars))
+	fmt.Println(title)
+	for _, line := range lines {
+		fmt.Printf("%s |\n", runewidth.FillRight(line, maxLineChars))
+	}
+	fmt.Println(title)
+}
+
+func log(level string, message ...interface{}) {
+	msg := tools.ExpandInterface(message)
+	logger.Write("TOOL", level, msg)
 }
