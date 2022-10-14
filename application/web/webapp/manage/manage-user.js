@@ -40,7 +40,7 @@ $(function() {
             loadData: function () {
                 let d = $.Deferred();
                 $.ajax({
-                    url: "/api/user?action=getlist",
+                    url: "/api/v1/user?action=getlist",
                     dataType: "json",
                     type: "GET",
                 }).done(function (response) {

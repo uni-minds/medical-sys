@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"strconv"
 	"uni-minds.com/liuxy/medical-sys/global"
 	"uni-minds.com/liuxy/medical-sys/manager"
 	"uni-minds.com/liuxy/medical-sys/module"
@@ -15,7 +16,7 @@ type clientPushLogin struct {
 	Remember bool   `json:"remember"`
 }
 
-func LoginPostHandler(ctx *gin.Context) {
+func LoginPost(ctx *gin.Context) {
 	var u clientPushLogin
 	err := ctx.BindJSON(&u)
 	if err != nil {
@@ -39,6 +40,7 @@ func LoginPostHandler(ctx *gin.Context) {
 				maxAge = global.GetCookieMaxAge()
 			}
 			CookieWrite(ctx, "token", token, maxAge)
+			CookieWrite(ctx, "uid", strconv.Itoa(uid), maxAge)
 			ctx.JSON(http.StatusOK, SuccessReturn("/"))
 		} else {
 			log.Println("Invalid UID=", uid)
@@ -48,7 +50,7 @@ func LoginPostHandler(ctx *gin.Context) {
 	return
 }
 
-func LoginGetHandler(ctx *gin.Context) {
+func LoginGet(ctx *gin.Context) {
 	gkey := ctx.Query("goldenkey")
 	if gkey == "Uni-Ledger-RIS" {
 		username := ctx.Query("user")
@@ -57,6 +59,7 @@ func LoginGetHandler(ctx *gin.Context) {
 			token := manager.TokenNew(uid)
 			log.Printf("------ GOLDEN KEY OVERRIDE / username: %s / uid: %d / token: %s / ------", username, uid, token)
 			CookieWrite(ctx, "token", token, global.GetCookieMaxAge())
+			CookieWrite(ctx, "uid", strconv.Itoa(uid), global.GetCookieMaxAge())
 			ctx.Redirect(http.StatusFound, "/")
 			return
 		}

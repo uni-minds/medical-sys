@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -23,7 +24,18 @@ type clientPushRegister struct {
 	Regcode  string `json:"regcode"`
 }
 
-func RegisterPost(ctx *gin.Context) {
+func RootUserRegisterGet(ctx *gin.Context) {
+	if global.GetAppSettings().UserRegisterEnable {
+		ctx.HTML(http.StatusOK, "userRegister.html", gin.H{
+			"title":  "用户注册 | Medi-sys",
+			"regapi": "/register",
+		})
+	} else {
+		ctx.Redirect(http.StatusFound, "/")
+	}
+}
+
+func RootUserRegisterPost(ctx *gin.Context) {
 	var r clientPushRegister
 	err := ctx.BindJSON(&r)
 	if err != nil {
@@ -31,8 +43,9 @@ func RegisterPost(ctx *gin.Context) {
 		return
 	}
 
-	log.Println("注册用户", r)
+	log.Println(color.RedString("注册用户: %v", r))
 	if r.Regcode != global.GetUserRegCode() {
+		log.Printf("Register code invalid %s != %s", r.Regcode, global.GetUserRegCode())
 		ctx.JSON(http.StatusOK, FailReturn(Ereg02InvalidRegcode))
 		return
 	}

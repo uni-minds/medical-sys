@@ -14,7 +14,7 @@ type UserLastStatus struct {
 	LastGroupId   int `json:"lastGroupId"`
 }
 
-func UserGetHandler(ctx *gin.Context) {
+func UserGet(ctx *gin.Context) {
 	valid, uid := CookieValidUid(ctx)
 	if !valid {
 		return
@@ -48,7 +48,7 @@ func UserGetHandler(ctx *gin.Context) {
 
 }
 
-func UserPostHandler(ctx *gin.Context) {
+func UserPost(ctx *gin.Context) {
 	valid, _ := CookieValidUid(ctx)
 	if !valid {
 		ctx.JSON(http.StatusOK, FailReturn(ETokenInvalid))
@@ -56,7 +56,7 @@ func UserPostHandler(ctx *gin.Context) {
 	}
 }
 
-func UserDeleteHandler(ctx *gin.Context) {
+func UserDelete(ctx *gin.Context) {
 	valid, _ := CookieValidUid(ctx)
 	if !valid {
 		ctx.JSON(http.StatusOK, FailReturn(ETokenInvalid))
@@ -64,6 +64,6 @@ func UserDeleteHandler(ctx *gin.Context) {
 	}
 }
 
-func UserPutHandler(ctx *gin.Context) {
+func UserPut(ctx *gin.Context) {
 
 }

@@ -1,5 +1,0 @@
-{
-    "SSMQ":{"tool":"time","cid":"SSMQ","name":"收缩末期"},
-    "SZMQ":{"tool":"time","cid":"SZMQ","name":"舒张末期"},
-    "SPEC":{"tool":"time","cid":"SPEC","name":"特殊时间"}
-}

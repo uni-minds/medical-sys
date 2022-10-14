@@ -13,21 +13,15 @@ import (
 	"os/exec"
 	"sort"
 	"strconv"
-	"uni-minds.com/liuxy/medical-sys/global"
 )
 
-const EHashNotFile = "target is not file"
-
-var BUFFERSIZE = 1000 * 1000
+const BufferSize = 2 * 1024 * 1024
 
 func CopyFile(src, dst string) error {
+	fmt.Printf("Copy: %s => %s\n", src, dst)
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
 		return err
-	}
-
-	if !sourceFileStat.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", src)
 	}
 
 	source, err := os.Open(src)
@@ -42,7 +36,7 @@ func CopyFile(src, dst string) error {
 	}
 	defer destination.Close()
 
-	buf := make([]byte, BUFFERSIZE)
+	buf := make([]byte, BufferSize)
 	var c int64 = 0
 	for {
 		n, err := source.Read(buf)
@@ -60,12 +54,12 @@ func CopyFile(src, dst string) error {
 			return err
 		}
 	}
-	fmt.Printf("OK\n")
-	return err
+	fmt.Printf("Finish\n")
+	return nil
 }
 
 func MoveFile(src, dst string) error {
-	fmt.Println("Move:", src, "=>", dst)
+	fmt.Printf("Move: %s => %s\n", src, dst)
 	sourceFileStat, err := os.Stat(src)
 	if err != nil {
 		return err
@@ -84,18 +78,16 @@ func GetFileMD5(file string) string {
 		return ""
 	}
 
-	filesize := stat.Size()
-
 	fp, err := os.Open(file)
 	if err != nil {
 		return ""
 	}
 
-	buf := make([]byte, BUFFERSIZE)
+	buf := make([]byte, BufferSize)
 	m := md5.New()
 	c := 0
 
-	fmt.Printf("0...")
+	fmt.Printf("Checksum: 0...")
 	for {
 		n, err := fp.Read(buf)
 		if err != nil && err != io.EOF {
@@ -109,24 +101,27 @@ func GetFileMD5(file string) string {
 		m.Write(buf[:n])
 
 		c += n
-		fmt.Printf("%d...", int64(c)*100/filesize)
+		fmt.Printf("%d...", int64(c)*100/stat.Size())
 	}
-	fmt.Printf("OK\n")
+	checksum := hex.EncodeToString(m.Sum(nil))
+	fmt.Printf("Finish [%s]\n", checksum)
+	return checksum
+}
+
+func GetStringMD5(str string) string {
+	m := md5.New()
+	m.Write([]byte(str))
 	return hex.EncodeToString(m.Sum(nil))
 }
 
-func GetStringMD5(str string) (h string) {
-	m := md5.New()
-	m.Write([]byte(str))
-	h = hex.EncodeToString(m.Sum(nil))
-	return
-}
-
-func GenSaltString(c int) (s string) {
-	alphabeta := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+func GenSaltString(c int, base string) (s string) {
+	if base == "" {
+		base = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	}
+	l := int64(len(base))
 	for i := 0; i < c; i++ {
-		n, _ := rand.Int(rand.Reader, big.NewInt(62))
-		t := alphabeta[n.Int64()]
+		n, _ := rand.Int(rand.Reader, big.NewInt(l))
+		t := base[n.Int64()]
 		s += string(t)
 	}
 	return
@@ -183,7 +178,7 @@ func execCommand(commandName string, params []string) (ok bool, output string, o
 func FFmpegToH264(input, output string) error {
 	ok, _, output, ec := execCommand("ffmpeg", []string{"-i", input, "-b:v", "50000K", "-vcodec", "h264", "-y", output})
 	if !ok {
-		return errors.New(global.EFFMPEGConvert)
+		return errors.New("E;FFMPEGConvert")
 	}
 	if ec != 0 {
 		fmt.Println(output)
@@ -195,7 +190,7 @@ func FFmpegToH264(input, output string) error {
 func FFmpegToGIF(input, output string) error {
 	ok, _, _, _ := execCommand("ffmpeg", []string{"-i", input, "-s", "640x480", "-vcodec", "gif", "-r", "15", "-y", output})
 	if !ok {
-		return errors.New(global.EFFMPEGConvert)
+		return errors.New("E;FFMPEGConvert")
 	}
 	return nil
 }
@@ -203,7 +198,7 @@ func FFmpegToGIF(input, output string) error {
 func FFmpegToOGV(input, output string) error {
 	ok, _, _, _ := execCommand("ffmpeg", []string{"-i", input, "-b:v", "50000K", "-vcodec", "libtheora", "-y", output})
 	if !ok {
-		return errors.New(global.EFFMPEGConvert)
+		return errors.New("E;FFMPEGConvert")
 	}
 	return nil
 }
@@ -220,6 +215,7 @@ func FFprobe(input string) (data string, err error) {
 }
 
 func RemoveDuplicateInt(a []int) []int {
+	sort.Ints(a)
 	i := 0
 	for j := 1; j < len(a); j++ {
 		if a[i] != a[j] {
@@ -229,13 +225,12 @@ func RemoveDuplicateInt(a []int) []int {
 	}
 	return a[:i+1]
 }
+
 func RemoveElementInt(a []int, ele int) []int {
-	var o []int
-	sort.Ints(a)
+	a = RemoveDuplicateInt(a)
 	for k, v := range a {
 		if ele == v {
-			o = append(a[:k], a[k+1:]...)
-			return o
+			return append(a[:k], a[k+1:]...)
 		}
 	}
 	return a

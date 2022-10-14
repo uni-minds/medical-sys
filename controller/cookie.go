@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
+	"strconv"
 	"strings"
 	"uni-minds.com/liuxy/medical-sys/manager"
 )
@@ -38,15 +39,14 @@ func CookieRemove(ctx *gin.Context, key string) {
 }
 
 func CookieValidUid(ctx *gin.Context) (result bool, uid int) {
-	god := ctx.Query("golden")
-	if god == "UniMinds_Admin" {
-		return true, 1
+	if str, err := CookieRead(ctx, "uid"); err == nil {
+		uid, _ = strconv.Atoi(str)
 	}
+	token, _ := CookieRead(ctx, "token")
 
-	token, err := CookieRead(ctx, "token")
-	if err == nil {
-		uid := manager.TokenValidator(token)
-		return uid > 0, uid
+	if manager.TokenValidator(uid, token) {
+		return true, uid
+	} else {
+		return false, -1
 	}
-	return false, -1
 }

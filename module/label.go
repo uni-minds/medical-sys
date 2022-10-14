@@ -2,6 +2,7 @@ package module
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"time"
 	"uni-minds.com/liuxy/medical-sys/database"
@@ -205,16 +206,45 @@ func LabelSubmitAuthor(mediaHash string, uid int) error {
 	}
 
 	switch li.Progress {
-	case 1: // ing,NaN
+	case 0, 1: // ing,NaN
 		li.Progress = 2
-	case 5: // ing,fin
+	case 2, 6:
+		return errors.New("status conflict: submitted")
+	case 3:
+		return errors.New("status conflict: under reviewing")
+	case 4, 5: // ing,fin
 		li.Progress = 6
+	case 7:
+		return errors.New("status conflict: reviewed")
 	default:
-		return errors.New("标注状态图错误")
+		return errors.New("status error")
 	}
 
 	li.TimeAuthorSubmit = time.Now().Format(global.TimeFormat)
 	return database.LabelUpdate(li)
+}
+func LabelUpdateReview(jstr string, mediaHash string, uid int) error {
+	li, err := database.LabelGet(mediaHash)
+	if err != nil {
+		return errors.New("无原始数据，无法审阅")
+
+	} else {
+		// 存在标注信息，验证是否允许修改
+		if li.ReviewUid != uid && li.ReviewUid != 0 {
+			ui, _ := database.UserGet(li.ReviewUid)
+			return errors.New(fmt.Sprintf("标注已进入专家“%s”的审阅流程，无法修改", ui.Realname))
+		}
+		li.ReviewUid = uid
+
+		switch li.Progress {
+		case 7: // fin,ing
+			return errors.New("审阅已经通过，无法修改")
+
+		}
+		li.Data = jstr
+		li.TimeReviewSubmit = time.Now().Format(global.TimeFormat)
+		return database.LabelUpdate(li)
+	}
 }
 func LabelSubmitReview(mediaHash string, uid int, result string) error {
 	li, err := database.LabelGet(mediaHash)
@@ -234,7 +264,7 @@ func LabelSubmitReview(mediaHash string, uid int, result string) error {
 		case 2, 3, 6:
 			li.Progress = 4
 		default:
-			errors.New("审核状态图错误")
+			return errors.New("审核状态图错误")
 		}
 		li.TimeReviewSubmit = time.Now().Format(global.TimeFormat)
 	case "confirm":
@@ -242,7 +272,7 @@ func LabelSubmitReview(mediaHash string, uid int, result string) error {
 		case 2, 3, 4, 6:
 			li.Progress = 7
 		default:
-			errors.New("审核状态图错误")
+			return errors.New("审核状态图错误")
 		}
 		li.TimeReviewConfirm = time.Now().Format(global.TimeFormat)
 	}

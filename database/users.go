@@ -32,8 +32,10 @@ type UserInfo struct {
 	LoginFailCount int    `gorose:"loginfailcount"`
 	LastGroupId    int    `gorose:"lastGroupId"`
 	LastPageIndex  int    `gorose:"lastPageIndex"`
+	LastToken      string `gorose:"lastToken"`
 	Memo           string `gorose:"memo"`
 }
+
 type UserPermissions struct {
 	ListMedia     bool
 	ManageMedia   bool
@@ -62,6 +64,7 @@ func initUserDB() {
 	"loginfailcount" INTEGER NOT NULL default 0,
 	"lastGroupId" INTEGER NOT NULL default 2, 
 	"lastPageIndex" INTEGER NOT NULL default 1, 
+	"lastToken" TEXT NOT NULL default "",
 	"memo" TEXT NOT NULL default "")`, global.DefaultDatabaseUserTable)
 
 	_, err := DB().Execute(dbSql)
@@ -130,6 +133,24 @@ func UserUpdateLoginExpireTime(uid int, t time.Time) error {
 func UserUpdatePassword(uid int, passwordC string, passwordSalt string) error {
 	data := map[string]interface{}{"password": passwordC, "passwordSalt": passwordSalt}
 	return userUpdate(uid, data)
+}
+
+func UserSetToken(uid int, token string) error {
+	data := map[string]interface{}{"lastToken": token}
+	return userUpdate(uid, data)
+}
+
+func UserTokenCheck(uid int, token string) bool {
+	if token == "" {
+		return false
+	}
+
+	ui, err := UserGet(uid)
+	if err != nil {
+		fmt.Println("E:", err.Error())
+		return false
+	}
+	return ui.LastToken == token
 }
 
 func UserGetGroups(uid int) (gids []int, err error) {

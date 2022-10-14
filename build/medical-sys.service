@@ -1,0 +1,10 @@
+[Unit]
+Description=BUAA Medical-Media Label System
+After=network.target
+
+[Service]
+ExecStart=/usr/local/medical-sys/medical-sys
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

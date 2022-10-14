@@ -108,6 +108,14 @@ func GroupUserSetPermissioin(gid, uid int, role string) error {
 	}
 	return database.GroupSetUserPermissions(gid, uid, permissions)
 }
+func GroupDel(i interface{}) error {
+	gi, err := database.GroupGet(i)
+	if err != nil {
+		return err
+	}
+	database.GroupDelete(gi.Gid)
+	return nil
+}
 
 func GroupGetAll() map[int][]string {
 	gis, err := database.GroupGetAll()

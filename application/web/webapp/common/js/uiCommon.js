@@ -1,55 +1,67 @@
 $(function(){
+    console.log("Copyright @ Uni-Minds 2019-2020");
     function uiCopyright() {
-        console.log("Copyright @ Uni-Minds 2019-2020");
-        $(".main-footer").html(
-            "<strong>Copyright &copy; 2020 <a href=\"http://uni-minds.com\">Uni-Minds</a> / <a href=\"http://www.buaa.edu.cn\">Beihang University</a> / <a href=\"http://www.anzhen.org\">Beijing Anzhen Hospital, CMU</a>. </strong>" +
-            "All rights reserved.\n" +
-            "<div class=\"float-right d-none d-sm-inline-block\">\n" +
-            "  <b>Rev.</b> 20200330 Remastered\n" +
-            "</div>");
+        $.get("/api/v1/raw?action=getversion", result => {
+            $(".main-footer").html(result);
+        })
     }
-    function menuInit() {
-        menuSetRealname();
-        menuCreate();
 
-        function menuCreate(){
-            $.get("/webapp/common/static/menu.json", function (result) {
-                menuLoadData(result);
-                if (navMenuActive) {
-                    menuActive(navMenuActive)
+    class Menu {
+        constructor(props) {
+            this.root = $(".mt-2 .nav");
+
+        }
+
+        init() {
+            $.get("/api/v1/user?action=getrealname", result => {
+                if (result.code === 200) {
+                    this.username = result.data
                 } else {
-                    setTimeout(menuCreate,3000);
+                    this.username = null;
+                }
+            });
+            $.get("/api/v1/raw?action=getmenujson", result => {
+                if (result.code === 200) {
+                    this.menudata = result.data;
+                    if (!!navMenuActive) {
+                        this.active = navMenuActive
+                    } else {
+                        // setTimeout(menuCreate, 3000);
+                        console.log("menu time out")
+                    }
                 }
             });
         }
-        function menuLoadData(menuJson) {
-            const root = $(".mt-2 .nav");
-            for (var i = 0; i < menuJson.length; i++) {
+
+        loadData(menuJson) {
+            for (let i = 0; i < menuJson.length; i++) {
                 let menu = menuJson[i];
-                if (menu.child) {
-                    let parent = menuParent(menu.name, menu.icon);
+                if (menu.child && menu.child.length>0) {
+                    let parent = this.parent(menu.name, menu.icon);
                     let tree = $('<ul class="nav nav-treeview"></ul>');
                     parent.append(tree);
-                    root.append(parent);
+                    this.root.append(parent);
 
                     let childlen = menu.child.length;
-                    for (var j = 0; j < childlen; j++) {
+                    for (let j = 0; j < childlen; j++) {
                         let child = menu.child[j];
-                        let obj = menuChild(child.id, child.name, child.icon, child.controller);
+                        let obj = this.child(child.id, child.name, child.icon, child.controller);
                         tree.append(obj);
                     }
                 } else {
-                    let obj = menuChild(menu.id, menu.name, menu.icon, menu.controller);
-                    root.append(obj);
+                    let obj = this.child(menu.id, menu.name, menu.icon, menu.controller);
+                    this.root.append(obj);
                 }
             }
         }
-        function menuParent(name, icon) {
+
+        parent(name, icon) {
             return $('<li class="nav-item has-treeview"><a href="#" class="nav-link"><i class="nav-icon ' +
                 icon + '"></i>' +
                 '<p>' + name + '<i class="right fas fa-angle-left"></p></i></a></li>');
         }
-        function menuChild(id, name, icon, controller) {
+
+        child(id, name, icon, controller) {
             if (id == null) {
                 return $('<li class="nav-item"><a href="' +
                     controller + '" class="nav-link"><i class="nav-icon ' +
@@ -63,28 +75,35 @@ $(function(){
                     name + '</p></a>');
             }
         }
-        function menuSetRealname() {
-            $.get("/api/user?action=getrealname",function(result){
-                let obj = $('.sidebar .info .d-block');
-                obj.attr('href','/ui/logout');
-                if (result.code === 200){
-                    obj.text(result.data);
-                } else {
-                    obj.text("未知用户");
-                }
-            });
+
+        set username(u) {
+            let obj = $('.sidebar .info .d-block');
+            if (u) {
+                obj.attr('href', '/logout').text(u);
+            } else {
+                obj.attr("href", "#").text("未知用户")
+            }
         }
-        function menuActive(id) {
-            $(".nav-link").removeClass("active");
-            let selector = "#" + id;
-            let obj = $(selector);
+
+        set menudata(d) {
+            this.loadData(d)
+        }
+
+        set active(id) {
+            if (this.activeRef) {
+                this.activeRef.removeClass("active")
+            }
+            let obj = $(`#${id}`);
             obj.addClass("active");
             let objParent = obj.parents()[2];
             if ($.nodeName(objParent, "li")) {
                 $(objParent).addClass("menu-open");
             }
+            this.activeRef = obj
         }
     }
-    menuInit();
+
+    let menu =new Menu()
+    menu.init()
     uiCopyright();
 });

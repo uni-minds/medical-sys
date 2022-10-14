@@ -1,13 +1,17 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"uni-minds.com/liuxy/medical-sys/database"
 	"uni-minds.com/liuxy/medical-sys/manager"
 	"uni-minds.com/liuxy/medical-sys/module"
+	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type mediaInfoForJsGrid struct {
@@ -33,7 +37,7 @@ type medialistForJsGrid struct {
 	ItemsCount int                  `json:"itemsCount"`
 }
 
-func MediaGetHandler(ctx *gin.Context) {
+func MediaGet(ctx *gin.Context) {
 	valid, uid := CookieValidUid(ctx)
 	if !valid {
 		return
@@ -126,8 +130,36 @@ func MediaGetHandler(ctx *gin.Context) {
 		if len(mediaHash) < 32 {
 			return
 		}
-		fp := module.MediaGetRealpath(mediaHash, uid)
-		ctx.File(fp)
+		fogv := module.MediaGetRealpath(mediaHash, uid)
+		if _, err := os.Stat(fogv); err != nil {
+			fmt.Println("E;media file not found!", fogv)
+			return
+		}
+
+		t := ctx.Query("type")
+		switch t {
+		case "mp4":
+			fmp4 := strings.Replace(fogv, ".ogv", ".mp4", 1)
+			if _, err := os.Stat(fmp4); err != nil {
+				fmp4 = fmt.Sprintf("%s.mp4", fogv)
+				if _, err := os.Stat(fmp4); err != nil {
+					fmt.Printf("ffmpeg convert: %s => %s\n", fogv, fmp4)
+					if err := tools.FFmpegToH264(fogv, fmp4); err != nil {
+						fmt.Println("E;ffmpeg convert:", err.Error())
+						return
+					}
+					fmt.Println("ffmpeg convert finish.")
+				}
+			}
+
+			ctx.File(fmp4)
+			return
+
+		default:
+			ctx.File(fogv)
+
+		}
+
 		return
 
 	case "getlock":
@@ -166,7 +198,7 @@ func MediaGetHandler(ctx *gin.Context) {
 			}
 		}
 
-	case "unlock":
+	case "setunlock":
 		mediaHash := ctx.Query("media")
 		if len(mediaHash) < 32 {
 			return

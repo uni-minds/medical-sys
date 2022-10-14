@@ -6,7 +6,7 @@ import (
 	"uni-minds.com/liuxy/medical-sys/global"
 )
 
-func init() {
+func Init() {
 	checkDefaultUser()
 }
 

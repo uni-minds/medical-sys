@@ -56,6 +56,8 @@ func initMediaDB() {
 	"hash" TEXT NOT NULL default "",
 	"duration" NUMERIC NOT NULL default 0,
 	"frames" INTERGER NOT NULL default 0,
+	"width" INTERGER NOT NULL default 0,
+	"height" INTERGER NOT NULL default 0,
 	"status" INTERGET NOT NULL default 0,
 	"uploadtime" TEXT NOT NULL default "2000-01-01 00:00:00",
 	"uploaduid" INTERGER NOT NULL default 0,
@@ -63,15 +65,16 @@ func initMediaDB() {
 	"machineid" TEXT NOT NULL default "",
 	"foldername" TEXT NOT NULL default "",
 	"fcode" TEXT NOT NULL default "",
-	"includeviews" TEXT NOT NULL default "[]",
+	"includeviews" TEXT NOT NULL default "",
 	"keywords" TEXT NOT NULL default "[]",
 	"memo" TEXT NOT NULL default "",
 	"mediatype" TEXT NOT NULL default "",
 	"mediadata" TEXT NOT NULL default "{}",
-	"labelauthoruid" TEXT NOT NULL default "[]",
-	"labelauthorslid" TEXT NOT NULL default "[]",  
-	"labelreviewuid" TEXT NOT NULL default "[]",
-	"labelreviewslid" TEXT NOT NULL default "[]")`, global.DefaultDatabaseMediaTable)
+	"labelprogress" INTERGER NOT NULL default 0,
+	"labelauthoruid" INTERGER NOT NULL default 0,
+	"labelauthorslid" INTERGER NOT NULL default 0,  
+	"labelreviewuid" INTERGER NOT NULL default 0,
+	"labelreviewslid" INTERGER NOT NULL default 0)`, global.DefaultDatabaseMediaTable)
 
 	_, err := DB().Execute(dbSql)
 	if err != nil {
@@ -142,7 +145,7 @@ func MediaGetAll() (ml []MediaInfo, err error) {
 	return
 }
 
-func mediaUpdate(mid int, data interface{}) (err error) {
+func MediaUpdate(mid int, data interface{}) (err error) {
 	_, err = DB().Table(global.DefaultDatabaseMediaTable).Data(data).Where("mid", "=", mid).Update()
 	return
 }
@@ -171,19 +174,23 @@ func MediaUpdateDetail(mid int, mediaData interface{}) error {
 	}
 
 	data := map[string]interface{}{"mediatype": mediaT, "mediadata": mediaD}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaUpdatePath(mid int, path string) error {
 	data := map[string]interface{}{"path": path}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaUpdateFolderName(mid int, foldername string) error {
 	data := map[string]interface{}{"foldername": foldername}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaUpdateDisplayName(mid int, name string) error {
 	data := map[string]interface{}{"displayname": name}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
+}
+func MediaUpdateAuthorReview(mid, authorUid, reviewUid int) error {
+	data := map[string]interface{}{"labelauthoruid": authorUid, "labelreviewuid": reviewUid}
+	return MediaUpdate(mid, data)
 }
 func MediaGetDetail(mid int) (mediaData interface{}, err error) {
 	mi, err := MediaGet(mid)
@@ -210,15 +217,15 @@ func MediaGetDetail(mid int) (mediaData interface{}, err error) {
 // Frames and duration
 func MediaUpdateFramesAndDuration(mid int, frames int, duration float64) error {
 	data := map[string]interface{}{"frames": frames, "duration": duration}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaUpdateWidthAndHeight(mid, width, height int) error {
 	data := map[string]interface{}{"width": width, "height": height}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaUpdateHash(mid int, hash string) error {
 	data := map[string]interface{}{"hash": hash}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 
 // Views
@@ -260,7 +267,7 @@ func MediaSetViews(mid int, views []string) error {
 }
 func MediaUpdateViews(mid int, viewsStr string) error {
 	data := map[string]interface{}{"includeviews": viewsStr}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaRemoveView(mid int, view string) error {
 	views, err := MediaGetViews(mid)
@@ -319,7 +326,7 @@ func MediaSetKeywords(mid int, keywords []string) error {
 }
 func MediaUpdateKeywords(mid int, keywordStr string) error {
 	data := map[string]interface{}{"keywords": keywordStr}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaRemoveKeyword(mid int, keyword string) error {
 	keywords, err := MediaGetKeywords(mid)
@@ -339,25 +346,25 @@ func MediaRemoveKeyword(mid int, keyword string) error {
 // Memo
 func MediaUpdateMemo(mid int, memo string) error {
 	data := map[string]interface{}{"memo": memo}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 
 // Label
 func MediaUpdateLabelAuthorUidLid(mid int, uid, lid int) error {
 	data := map[string]interface{}{"labelauthoruid": uid, "labelauthorslid": lid}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaUpdateLabelReviewUidLid(mid int, uid, lid int) error {
 	data := map[string]interface{}{"labelreviewuid": uid, "labelreviewslid": lid}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaUpdateLabelProgress(mid, authoruid, revieweruid, progress int) error {
 	data := map[string]interface{}{"labelauthoruid": authoruid, "labelreviewuid": revieweruid, "labelprogress": progress}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 func MediaRemoveLabel(mid int) error {
 	data := map[string]interface{}{"labelauthoruid": 0, "labelreviewuid": 0, "labelprogress": 0}
-	return mediaUpdate(mid, data)
+	return MediaUpdate(mid, data)
 }
 
 func MediaDelete(mid int) (err error) {

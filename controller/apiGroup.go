@@ -7,7 +7,7 @@ import (
 	"uni-minds.com/liuxy/medical-sys/module"
 )
 
-func GroupGetHandler(ctx *gin.Context) {
+func GroupGet(ctx *gin.Context) {
 	valid, uid := CookieValidUid(ctx)
 	if !valid {
 		ctx.JSON(http.StatusOK, FailReturn(ETokenInvalid))

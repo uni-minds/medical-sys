@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Unknwon/goconfig"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -52,15 +51,15 @@ type MediaSummaryInfo struct {
 //	AuthorTime string
 //}
 type MediaImportJson struct {
-	Source    string `json:"source"`
-	Filename  string `json:"target"`
-	Descript  string `json:"descript"`
-	View      string `json:"view"`
-	Keywords  string `json:"keywords"`
-	GroupName string `json:"groupname"`
-	Fcode     string `json:"fcode"`
-	PatientID string `json:"patientid"`
-	MachineID string `json:"machineid"`
+	Source    string   `json:"source"`
+	Filename  string   `json:"target"`
+	Descript  string   `json:"descript"`
+	View      string   `json:"view"`
+	Keywords  []string `json:"keywords"`
+	GroupName string   `json:"groupname"`
+	Fcode     string   `json:"fcode"`
+	PatientID string   `json:"patientid"`
+	MachineID string   `json:"machineid"`
 }
 
 //生成mid的标注作者和审核摘要信息
@@ -74,42 +73,34 @@ func MediaGetSummary(mid int) (summary MediaSummaryInfo, err error) {
 	summary.DisplayName = mi.DisplayName
 	summary.Memo = mi.Memo
 
-	// HASH再识别,存在问题？
-	//if len(mi.Hash) != 32 {
-	//	log.Println("Find old import hash", mi.Hash, mi.Path)
-	//	hash := tools.GetFileMD5(mi.Path)
-	//	log.Println("Update hash", hash)
-	//	database.MediaUpdateHash(mi.Mid, hash)
-	//	li,err :=database.LabelGet(mi.Hash)
-	//	if err == nil {
-	//		err = database.LabelUpdateMediaHash(li.Lid,hash)
-	//		if err!= nil {
-	//			log.Println(err.Error())
-	//		}
-	//		log.Println("Label UPD",li.Lid,mi.Hash,hash)
-	//	}
-	//	summary.Hash = hash
-	//}
-
 	// 切面再识别
 	switch mi.IncludeViews {
 	case "", "null", "[]":
-		views := MediaAutoGenViews(mi.DisplayName)
-		if len(views) > 0 {
-			_ = database.MediaSetViews(mid, views)
-			jb, _ := json.Marshal(views)
-			summary.Views = string(jb)
-		} else {
-			summary.Views = "[]"
+		view := MediaAnalysisView(mi.DisplayName)
+		summary.Views = view
+
+		if view != "" {
+			database.MediaUpdateViews(mid, view)
 		}
 
 	default:
-		summary.Views = mi.IncludeViews
+		view := mi.IncludeViews
+		fmt.Println("analysis:", mi.IncludeViews)
+		if view[0] == '[' {
+			if strings.Contains(view, ",") {
+				fmt.Println("cannot convert:", mi.Mid)
+			} else {
+				view = view[2 : len(view)-2]
+				fmt.Println("->", view)
+				database.MediaUpdateViews(mid, view)
+			}
+		}
+		summary.Views = view
 	}
 	// 关键字再识别
 	switch mi.Keywords {
 	case "", "null", "[]":
-		keywords := MediaAutoGenKeywords(mi.DisplayName)
+		keywords := MediaAnalysisKeywords(mi.DisplayName)
 		if len(keywords) > 0 {
 			_ = database.MediaSetKeywords(mid, keywords)
 			jb, _ := json.Marshal(keywords)
@@ -140,50 +131,6 @@ func MediaGetSummary(mid int) (summary MediaSummaryInfo, err error) {
 			}
 		}
 	}
-	// 标注信息再识别
-	//switch mi.LabelAuthorUid {
-	//case "", "[]", "null":
-	//	labelAuthorsUid := make([]int, 0)
-	//	labelAuthorsLid := make([]int, 0)
-	//	lis, err := database.LabelGetAll(mid, 0, global.LabelTypeAuthor)
-	//	if err != nil {
-	//		log.Println(err.Error())
-	//		break
-	//	}
-	//	for _, li := range lis {
-	//		labelAuthorsUid = append(labelAuthorsUid, li.Uid)
-	//		labelAuthorsLid = append(labelAuthorsLid, li.Lid)
-	//	}
-	//	MediaUpdateLabelAuthorsUidLid(mid, labelAuthorsUid, labelAuthorsLid)
-	//	summary.AuthorUids = labelAuthorsUid
-	//	summary.AuthorLids = labelAuthorsLid
-	//
-	//default:
-	//	json.Unmarshal([]byte(mi.LabelAuthorUid), &summary.AuthorUids)
-	//	json.Unmarshal([]byte(mi.LabelAuthorsLid), &summary.AuthorLids)
-	//}
-	//// 审阅信息再识别
-	//switch mi.LabelReviewUid {
-	//case "", "[]", "null":
-	//	labelReviewsUid := make([]int, 0)
-	//	labelReviewsLid := make([]int, 0)
-	//	lis, err := database.LabelGetAll(mid, 0, global.LabelTypeReview)
-	//	if err != nil {
-	//		log.Println(err.Error())
-	//		break
-	//	}
-	//	for _, li := range lis {
-	//		labelReviewsUid = append(labelReviewsUid, li.Uid)
-	//		labelReviewsLid = append(labelReviewsLid, li.Lid)
-	//	}
-	//	MediaUpdateLabelReviewsUidLid(mid, labelReviewsUid, labelReviewsLid)
-	//	summary.ReviewUids = labelReviewsUid
-	//	summary.ReviewLids = labelReviewsLid
-	//
-	//default:
-	//	json.Unmarshal([]byte(mi.LabelReviewUid), &summary.ReviewUids)
-	//	json.Unmarshal([]byte(mi.LabelReviewsLid), &summary.ReviewLids)
-	//}
 
 	return
 }
@@ -386,40 +333,7 @@ func MediaInfo(mediafile string) (width, height, frames int, duration float64, c
 
 	return
 }
-func MediaImportDir(source, store string, uid, gid int) error {
-	files, err := ioutil.ReadDir(source)
-	if err != nil {
-		return err
-	}
-
-	destFolder := filepath.Join(store, time.Now().Format("20060102-15H"))
-	_, err = os.Stat(destFolder)
-	if err != nil {
-		_ = os.MkdirAll(destFolder, 0777)
-	}
-
-	for _, v := range files {
-		if v.IsDir() {
-			log.Println("Subdir, forbidden")
-			continue
-		}
-
-		srcFile := filepath.Join(source, v.Name())
-
-		disps := strings.Split(v.Name(), ".")
-
-		switch strings.ToLower(filepath.Ext(v.Name())) {
-		case ".ogv":
-			mid, err := MediaImportUsVideoOgv(srcFile, destFolder, disps[0], []string{"4AP"}, uid)
-			if err != nil {
-				continue
-			}
-			database.GroupAddMedia(gid, mid)
-		}
-	}
-	return nil
-}
-func MediaImportUsVideoOgv(srcFile, destFolder, dispname string, views []string, uid int) (mid int, err error) {
+func MediaImportUsVideoOgv(srcFile, destFolder, dispname, view, descript, fcode, patientid, machineid string, keywords []string, uid int) (mid int, err error) {
 	checksum := tools.GetFileMD5(srcFile)
 	if checksum == "" {
 		return 0, errors.New("HASH校验值为空:" + srcFile)
@@ -431,19 +345,20 @@ func MediaImportUsVideoOgv(srcFile, destFolder, dispname string, views []string,
 		return mi.Mid, errors.New(global.EMediaAlreadyExisted)
 	}
 
+	bsKeyWord, _ := json.Marshal(keywords)
+
 	destFilename := filepath.Base(srcFile)
 	destFile := filepath.Join(destFolder, destFilename)
 	for {
 		_, err = os.Stat(destFile)
 		if err == nil {
 			data := strings.Split(destFilename, ".")
-			destFile = filepath.Join(destFolder, data[0]+"_"+tools.GenSaltString(5)+".ogv")
+			destFile = filepath.Join(destFolder, data[0]+"_"+tools.GenSaltString(5, "")+".ogv")
 		} else {
 			break
 		}
 	}
 	_ = tools.CopyFile(srcFile, destFile)
-	bv, _ := json.Marshal(views)
 
 	width, height, frames, duration, encoder, err := MediaInfo(srcFile)
 	mi = database.MediaInfo{
@@ -456,15 +371,15 @@ func MediaImportUsVideoOgv(srcFile, destFolder, dispname string, views []string,
 		Width:          width,
 		Height:         height,
 		Status:         0,
-		UploadTime:     "",
+		UploadTime:     time.Now().Format(global.TimeFormat),
 		UploadUid:      uid,
-		PatientID:      "",
-		MachineID:      "",
+		PatientID:      patientid,
+		MachineID:      machineid,
 		FolderName:     filepath.Base(filepath.Dir(srcFile)),
-		Fcode:          "",
-		IncludeViews:   string(bv),
-		Keywords:       "",
-		Memo:           "",
+		Fcode:          fcode,
+		IncludeViews:   view,
+		Keywords:       string(bsKeyWord),
+		Memo:           descript,
 		MediaType:      "",
 		MediaData:      "",
 		LabelAuthorUid: 0,
@@ -490,9 +405,7 @@ func MediaImportFromJson(uid int, srcFolder, destFolder string, data []MediaImpo
 		}
 		srcFile := filepath.Join(srcFolder, v.Filename)
 		dispname := strings.Split(filepath.Base(v.Source), ".")[0]
-		var views []string
-		_ = json.Unmarshal([]byte(v.View), &views)
-		mid, err := MediaImportUsVideoOgv(srcFile, destFolder, dispname, views, uid)
+		mid, err := MediaImportUsVideoOgv(srcFile, destFolder, dispname, v.View, v.Descript, v.Fcode, v.PatientID, v.MachineID, v.Keywords, uid)
 		if err != nil {
 			log.Println("导入过程中错误：", err.Error())
 			continue
@@ -523,8 +436,7 @@ func MediaImportFromJson(uid int, srcFolder, destFolder string, data []MediaImpo
 }
 func MediaGetRealpath(hash string, uid int) string {
 	mi, err := userGetMediaInfo(uid, hash)
-	log.Println("Find", hash, uid)
-	log.Println(mi.Path)
+	log.Println("Find", hash, uid, mi.Path)
 	if err != nil {
 		return ""
 	} else {
@@ -555,40 +467,39 @@ func MediaUpdateLabel(mid, uid, lid int, labeltype string) error {
 	}
 }
 
-func MediaAutoGenViews(dispname string) []string {
-	views := make([]string, 0)
-
+func MediaAnalysisView(dispname string) string {
+	dispname = strings.ToUpper(dispname)
 	if strings.Contains(dispname, "3VT") || strings.Contains(dispname, "三血管气管") {
-		views = append(views, "3VT")
+		return "3VT"
 	} else if strings.Contains(dispname, "3V") || strings.Contains(dispname, "三血管") {
-		views = append(views, "3V")
+		return "3V"
 	}
 
 	if strings.Contains(dispname, "L") || strings.Contains(dispname, "左室") {
-		views = append(views, "L")
+		return "L"
 	}
 
 	if strings.Contains(dispname, "R") || strings.Contains(dispname, "右室") {
-		views = append(views, "R")
+		return "R"
 	}
 
 	if strings.Contains(dispname, "AP") || strings.Contains(dispname, "四腔") {
-		views = append(views, "4AP")
+		return "4AP"
 	} else if strings.Contains(dispname, "AA") || strings.Contains(dispname, "主动脉弓") {
-		views = append(views, "AA")
+		return "AA"
 	} else if strings.Contains(dispname, "AC") || strings.Contains(dispname, "腹横切") {
-		views = append(views, "AC")
+		return "AC"
 	} else if strings.Contains(dispname, "A") || strings.Contains(dispname, "腹") {
-		views = append(views, "A")
+		return "A"
 	}
 
 	if strings.Contains(dispname, "VC") {
-		views = append(views, "VC")
+		return "VC"
 	}
 
-	return views
+	return ""
 }
-func MediaAutoGenKeywords(dispname string) []string {
+func MediaAnalysisKeywords(dispname string) []string {
 	keywords := make([]string, 0)
 	if strings.Contains(dispname, "异常") {
 		keywords = append(keywords, "异常")

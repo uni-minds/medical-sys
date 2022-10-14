@@ -5,28 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="x-ua-compatible" content="ie=edge">
 
-  <title>MediSys | 区块链后台管理</title>
+  <title>{{.title}}</title>
 
   <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="../plugins/fontawesome-free/css/all.min.css">
-  <!-- IonIcons -->
-  <link rel="stylesheet" href="http://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+  <link rel="stylesheet" href="../../plugins/fontawesome-free/css/all.min.css">
   <!-- Theme style -->
-  <link rel="stylesheet" href="../dist/css/adminlte.min.css">
+  <link rel="stylesheet" href="../../dist/css/adminlte.min.css">
   <!-- Google Font: Source Sans Pro -->
   <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
 </head>
-<!--
-BODY TAG OPTIONS:
-=================
-Apply one or more of the following classes to to the body tag
-to get the desired effect
-|---------------------------------------------------------|
-|LAYOUT OPTIONS | sidebar-collapse                        |
-|               | sidebar-mini                            |
-|---------------------------------------------------------|
--->
-<body class="hold-transition sidebar-mini sidebar-collapse">
+<body class="hold-transition sidebar-mini">
 <div class="wrapper">
   <!-- Navbar -->
   <nav class="main-header navbar navbar-expand navbar-white navbar-light">
@@ -37,12 +25,26 @@ to get the desired effect
       </li>
     </ul>
 
-
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
+      <!-- Notifications Dropdown Menu -->
+      <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#">
+          <i class="far fa-bell"></i>
+          <span id="user-message-remain-count" class="badge badge-warning navbar-badge">0</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+          <a href="#" class="dropdown-item">
+            <i class="fas fa-file mr-2"></i> 0 new reports
+            <span class="float-right text-muted text-sm">0 days</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <a href="#" class="dropdown-item dropdown-footer">See All Notifications</a>
+        </div>
+      </li>
       <li class="nav-item">
         <a class="nav-link" data-widget="control-sidebar" data-slide="true" href="#"><i
-            class="fas fa-th-large"></i></a>
+                  class="fas fa-th-large"></i></a>
       </li>
     </ul>
   </nav>
@@ -52,9 +54,9 @@ to get the desired effect
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="/" class="brand-link">
-      <img src="../dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3"
+      <img src="../../dist/img/AdminLTELogo.png" alt="Logo" class="brand-image img-circle elevation-3"
            style="opacity: .8">
-      <span class="brand-text font-weight-heavy"><b>Medi-</b>Sys</span>
+      <span class="brand-text font-weight-heavy "><b>Medi-</b>Sys</span>
     </a>
 
     <!-- Sidebar -->
@@ -62,7 +64,7 @@ to get the desired effect
       <!-- Sidebar user panel (optional) -->
       <div class="user-panel mt-3 pb-3 mb-3 d-flex">
         <div class="image">
-          <img src="../dist/img/avatar3.png" class="img-circle elevation-2" alt="User Image">
+          <img src="../../dist/img/avatar3.png" class="img-circle elevation-2" alt="User Image">
         </div>
         <div class="info">
           <a href="#" class="d-block">User</a>
@@ -92,10 +94,11 @@ to get the desired effect
           <!-- 监控卡片 -->
           <div class="row">
             <!-- Group1 -->
-            <div class="col-4">
+            <div class="col-12">
               <div class="card card-primary">
                 <div class="card-header">
-                  <h3 id="center-1-group-name" class="card-title"></h3>
+                  <h3 class="card-title">
+                    <i class="far fa-chart-bar"></i>节点状态</h3>
                 </div>
                 <!-- /.card-header -->
                 <div class="card-body">
@@ -103,24 +106,10 @@ to get the desired effect
                     <div class="col-12">
                       <div class="position-relative p-3 bg-gray" style="height: 120px">
                         <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-1-gateway-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-1-gateway-name"></a></b><br /><br />
-                        IP:<a id="center-1-gateway-ip"></a><br />
-                      </div>
-                    </div>
-                  </div>
-                  <br />
-
-                  <div class="row">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
                           <div id="center-1-node1-status" class="ribbon bg-success text-lg"></div>
                         </div>
                         <b><a id="center-1-node1-name"></a></b><br /><br />
-                        IP:<a id="center-1-node1-ip"></a><br />
-                        负载:<a id="center-1-node1-load"></a>&nbsp;&nbsp;&nbsp;&nbsp;块高度:<a id="center-1-node1-height"></a>
+                        H:<a id="center-1-node1-height"></a> IP:<a id="center-1-node1-ip"></a>&nbsp;
                       </div>
                     </div>
                   </div>
@@ -133,32 +122,7 @@ to get the desired effect
                           <div id="center-1-node2-status" class="ribbon bg-success text-lg"></div>
                         </div>
                         <b><a id="center-1-node2-name"></a></b><br /><br />
-                        IP:<a id="center-1-node2-ip"></a><br />
-                        负载:<a id="center-1-node2-load"></a>&nbsp;&nbsp;&nbsp;&nbsp;块高度:<a id="center-1-node2-height"></a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- /.card-body -->
-              </div>
-              <!-- /.card -->
-            </div>
-            <!-- Group2 -->
-            <div class="col-4">
-              <div class="card card-primary">
-                <div class="card-header">
-                  <h3 id="center-2-group-name" class="card-title"></h3>
-                </div>
-                <!-- /.card-header -->
-                <div class="card-body">
-                  <div class="row mt-4">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-2-gateway-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-2-gateway-name"></a></b><br /><br />
-                        IP:<a id="center-2-gateway-ip"></a><br />
+                        H:<a id="center-1-node2-height"></a> IP:<a id="center-1-node2-ip"></a>&nbsp;
                       </div>
                     </div>
                   </div>
@@ -168,11 +132,10 @@ to get the desired effect
                     <div class="col-12">
                       <div class="position-relative p-3 bg-gray" style="height: 120px">
                         <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-2-node1-status" class="ribbon bg-success text-lg"></div>
+                          <div id="center-1-node3-status" class="ribbon bg-success text-lg"></div>
                         </div>
-                        <b><a id="center-2-node1-name"></a></b><br /><br />
-                        IP:<a id="center-2-node1-ip"></a><br />
-                        负载:<a id="center-2-node1-load"></a>&nbsp;&nbsp;&nbsp;&nbsp;块高度:<a id="center-2-node1-height"></a>
+                        <b><a id="center-1-node3-name"></a></b><br /><br />
+                        H:<a id="center-1-node3-height"></a> IP:<a id="center-1-node3-ip"></a>&nbsp;
                       </div>
                     </div>
                   </div>
@@ -182,35 +145,10 @@ to get the desired effect
                     <div class="col-12">
                       <div class="position-relative p-3 bg-gray" style="height: 120px">
                         <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-2-node2-status" class="ribbon bg-success text-lg"></div>
+                          <div id="center-1-node4-status" class="ribbon bg-success text-lg"></div>
                         </div>
-                        <b><a id="center-2-node2-name"></a></b><br /><br />
-                        IP:<a id="center-2-node2-ip"></a><br />
-                        负载:<a id="center-2-node2-load"></a>&nbsp;&nbsp;&nbsp;&nbsp;块高度:<a id="center-2-node2-height"></a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <!-- /.card-body -->
-              </div>
-              <!-- /.card -->
-            </div>
-            <!-- Group3 -->
-            <div class="col-4">
-              <div class="card card-primary">
-                <div class="card-header">
-                  <h3 id="center-3-group-name" class="card-title"></h3>
-                </div>
-                <!-- /.card-header -->
-                <div class="card-body">
-                  <div class="row mt-4">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-3-gateway-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-3-gateway-name"></a></b><br /><br />
-                        IP:<a id="center-3-gateway-ip"></a><br />
+                        <b><a id="center-1-node4-name"></a></b><br /><br />
+                        H:<a id="center-1-node4-height"></a> IP:<a id="center-1-node4-ip"></a>&nbsp;
                       </div>
                     </div>
                   </div>
@@ -220,28 +158,14 @@ to get the desired effect
                     <div class="col-12">
                       <div class="position-relative p-3 bg-gray" style="height: 120px">
                         <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-3-node1-status" class="ribbon bg-success text-lg"></div>
+                          <div id="center-1-node5-status" class="ribbon bg-success text-lg"></div>
                         </div>
-                        <b><a id="center-3-node1-name"></a></b><br /><br />
-                        IP:<a id="center-3-node1-ip"></a><br />
-                        负载:<a id="center-3-node1-load"></a>&nbsp;&nbsp;&nbsp;&nbsp;块高度:<a id="center-3-node1-height"></a>
+                        <b><a id="center-1-node5-name"></a></b><br /><br />
+                        H:<a id="center-1-node5-height"></a> IP:<a id="center-1-node5-ip"></a>&nbsp;
                       </div>
                     </div>
                   </div>
                   <br />
-
-                  <div class="row">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-3-node2-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-3-node2-name"></a></b><br /><br />
-                        IP:<a id="center-3-node2-ip"></a><br />
-                        负载:<a id="center-3-node2-load"></a>&nbsp;&nbsp;&nbsp;&nbsp;块高度:<a id="center-3-node2-height"></a>
-                      </div>
-                    </div>
-                  </div>
                 </div>
                 <!-- /.card-body -->
               </div>
@@ -278,27 +202,6 @@ to get the desired effect
 
             </div>
           </div>
-          <!-- /.row -->
-          <!-- debug tools -->
-          <div class="row">
-            <div class="col-12">
-              <div class="card card-warning card-outline">
-                <div class="card-header">
-                  <h3 class="card-title">
-                    <i class="far fa-chart-bar"></i>
-                    Debug tools
-                  </h3>
-                </div>
-                <div class="card-body">
-                  <button id='startpress' class="btn btn-block btn-primary">1分钟压测</button>
-                </div>
-                <!-- /.card-body-->
-              </div>
-              <!-- /.card -->
-
-            </div>
-          </div>
-          <!-- /.row -->
         </div>
         <!-- /.container-fluid -->
     </div>
@@ -306,44 +209,33 @@ to get the desired effect
   </div>
   <!-- /.content-wrapper -->
 
+  <footer class="main-footer">Copyright</footer>
   <!-- Control Sidebar -->
   <aside class="control-sidebar control-sidebar-dark">
     <!-- Control sidebar content goes here -->
   </aside>
   <!-- /.control-sidebar -->
-
-  <!-- Main Footer -->
-  <footer class="main-footer">
-  </footer>
 </div>
 <!-- ./wrapper -->
 
-<!-- REQUIRED SCRIPTS -->
-
 <!-- jQuery -->
-<script src="../plugins/jquery/jquery.min.js"></script>
+<script src="../../plugins/jquery/jquery.min.js"></script>
 <!-- Bootstrap -->
-<script src="../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="../../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- AdminLTE -->
-<script src="../dist/js/adminlte.js"></script>
+<script src="../../dist/js/adminlte.js"></script>
 <!-- FLOT CHARTS -->
-<script src="../plugins/flot/jquery.flot.js"></script>
+<script src="../../plugins/flot/jquery.flot.js"></script>
 <!-- FLOT RESIZE PLUGIN - allows the chart to redraw when the window is resized -->
-<script src="../plugins/flot-old/jquery.flot.resize.min.js"></script>
+<script src="../../plugins/flot-old/jquery.flot.resize.min.js"></script>
 <!-- FLOT PIE PLUGIN - also used to draw donut charts -->
-<script src="../plugins/flot-old/jquery.flot.pie.min.js"></script>
+<script src="../../plugins/flot-old/jquery.flot.pie.min.js"></script>
 
-<script src="../webapp/common/js/common.js"></script>
-<script src="../webapp/common/js/user.js"></script>
-<script src="../webapp/common/js/menu.js"></script>
-
-<script src="../webapp/manage/blockchain.js"></script>
-
+<script src="../../webapp/common/js/uiCommon.js"></script>
+<script src="../../webapp/manage/blockchain.js"></script>
+<!-- Custom scripts -->
 <script>
-  menuActive("management-blockchain");
-  $('#startpress').click(function(){
-    getJson('/monitor/bcpress')
-  })
+  let navMenuActive="{{.page_id}}";
 </script>
 
 </body>

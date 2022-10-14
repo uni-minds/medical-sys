@@ -1,9 +1,12 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"time"
+	"uni-minds.com/liuxy/medical-sys/global"
 	"uni-minds.com/liuxy/medical-sys/module"
 )
 
@@ -19,7 +22,7 @@ type LabelInfoForButton struct {
 	Tips      string `json:"tips"`
 }
 
-func LabelGetHandler(ctx *gin.Context) {
+func LabelGet(ctx *gin.Context) {
 	valid, uid := CookieValidUid(ctx)
 	if !valid {
 		ctx.JSON(http.StatusOK, FailReturn(ETokenInvalid))
@@ -42,25 +45,22 @@ func LabelGetHandler(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, SuccessReturn(summary))
 		}
 
-	case "review":
+	case "author", "review":
 		switch ctx.Query("selector") {
 		case "memo":
 			memo := module.UserGetMediaMemo(uid, module.UserGetMid(uid, mediaHash))
 			ctx.JSON(http.StatusOK, SuccessReturn(memo))
 			return
-		}
 
-	case "author":
-		switch ctx.Query("selector") {
-		case "memo":
-			memo := module.UserGetMediaMemo(uid, module.UserGetMid(uid, mediaHash))
-			ctx.JSON(http.StatusOK, SuccessReturn(memo))
+		case "full":
+			ld := module.LabelGetJson(mediaHash)
+			ctx.JSON(http.StatusOK, SuccessReturn(ld))
 			return
 		}
 	}
 }
 
-func LabelPostHandler(ctx *gin.Context) {
+func LabelPost(ctx *gin.Context) {
 	valid, uid := CookieValidUid(ctx)
 	if !valid {
 		ctx.JSON(http.StatusOK, FailReturn(ETokenInvalid))
@@ -73,30 +73,30 @@ func LabelPostHandler(ctx *gin.Context) {
 
 	switch action {
 	case "review":
-
 		switch ctx.Query("selector") {
 		case "memo":
 			var ldata LabelData
 			err := ctx.BindJSON(&ldata)
 			if err != nil {
 				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
-				return
-			}
-			if ldata.MediaHash != mediaHash {
+			} else if ldata.MediaHash != mediaHash {
 				ctx.JSON(http.StatusOK, FailReturn("上传数据特征异常"))
-				return
-			}
-			err = module.UserSetMediaMemo(uid, mid, ldata.Data)
-			if err != nil {
+			} else if err = module.UserSetMediaMemo(uid, mid, ldata.Data); err != nil {
 				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
-				return
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn("OK"))
 			}
+			return
 
 		case "reject":
 			err := module.LabelSubmitReview(mediaHash, uid, "reject")
 			if err != nil {
 				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
+			} else {
+				log.Println("User label confirmed.")
+				ctx.JSON(http.StatusOK, SuccessReturn("exit"))
 			}
+			return
 
 		case "confirm":
 			log.Println("User label confirm", uid, mid)
@@ -106,43 +106,73 @@ func LabelPostHandler(ctx *gin.Context) {
 				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
 			} else {
 				log.Println("User label confirmed.")
+				ctx.JSON(http.StatusOK, SuccessReturn("exit"))
 			}
-
-		}
-		ctx.JSON(http.StatusOK, SuccessReturn("OK"))
-
-	case "author":
-		var ldata LabelData
-		err := ctx.BindJSON(&ldata)
-		if err != nil || ldata.MediaHash != mediaHash {
-			ctx.JSON(http.StatusOK, FailReturn(err.Error()))
-		}
-
-		switch ctx.Query("selector") {
-		case "memo":
-			err := module.UserSetMediaMemo(uid, mid, ldata.Data)
-			if err != nil {
-				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
-				return
-			}
+			return
 
 		case "full":
-			err := module.LabelUpdateAuthor(ldata.Data, mediaHash, uid)
-			if err != nil {
+			var ldata LabelData
+			if err := ctx.BindJSON(&ldata); err != nil {
 				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
-				return
+
+			} else if err = module.LabelUpdateReview(ldata.Data, mediaHash, uid); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
+
+			} else {
+				fmt.Println("Reviewer json import:", ldata)
+				ctx.JSON(http.StatusOK, SuccessReturn(fmt.Sprintf("同步成功 @ %s", time.Now().Format(global.TimeFormat))))
+
 			}
+			return
+
+		default:
+			ctx.JSON(http.StatusOK, FailReturn("功能不可用"))
+			return
+		}
+
+	case "author":
+		switch ctx.Query("selector") {
+		case "memo":
+			var ldata LabelData
+			if err := ctx.BindJSON(&ldata); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
+			} else if err = module.UserSetMediaMemo(uid, mid, ldata.Data); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn(fmt.Sprintf("同步成功 @ %s", time.Now().Format(global.TimeFormat))))
+			}
+			return
+
+		case "full":
+			var ldata LabelData
+			if err := ctx.BindJSON(&ldata); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
+			} else if err := module.LabelUpdateAuthor(ldata.Data, mediaHash, uid); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
+			} else {
+				fmt.Println("Author json import:")
+				fmt.Println(ldata.Data)
+				fmt.Println("---")
+				ctx.JSON(http.StatusOK, SuccessReturn(fmt.Sprintf("同步成功 @ %s", time.Now().Format(global.TimeFormat))))
+			}
+			return
 
 		case "submit":
 			// 提交
-			err := module.LabelSubmitAuthor(mediaHash, uid)
-			if err != nil {
+			if err := module.LabelSubmitAuthor(mediaHash, uid); err != nil {
 				ctx.JSON(http.StatusOK, FailReturn(err.Error()))
-				return
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn("exit"))
 			}
+			return
 
+		default:
+			ctx.JSON(http.StatusOK, FailReturn("功能不可用"))
+			return
 		}
-
-		ctx.JSON(http.StatusOK, SuccessReturn("OK"))
 	}
+}
+
+func LabelDel(ctx *gin.Context) {
+
 }

@@ -344,7 +344,7 @@ func UserSetPassword(i interface{}, password string) error {
 		return err
 	}
 
-	salt := tools.GenSaltString(20)
+	salt := tools.GenSaltString(20, "")
 	password = tools.GetStringMD5(password + salt)
 	return database.UserUpdatePassword(u.Uid, password, salt)
 }

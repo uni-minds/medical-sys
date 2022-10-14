@@ -10,7 +10,7 @@ package manager
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -25,7 +25,7 @@ type MediaAccess struct {
 	DB   map[string]MediaLocker
 }
 
-var mediaAccessLockTime = 60 * time.Second
+var mediaAccessLockTime = 5 * time.Second
 var mediaAccess MediaAccess
 
 func mediaAccessLockInit() {
@@ -41,7 +41,8 @@ func MediaAccessSetLock(mediaHash string, uid int, tp string) (status MediaLocke
 			status.Type = tp
 			mediaAccess.DB[mediaHash] = status
 			mediaAccess.Lock.Unlock()
-			log.Println("Locker time renew:", status)
+			//log.Println("Locker time renew:", status)
+			fmt.Print(".")
 		}
 		return status, errors.New("media locked")
 	} else {

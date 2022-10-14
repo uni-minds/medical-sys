@@ -41,19 +41,20 @@ type LabelInfo struct {
 func initLabelDB() {
 	dbSql := fmt.Sprintf(`CREATE TABLE IF NOT EXISTS "%s" (
 	"lid" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-	"uid" INTERGER NOT NULL default 0,
-	"mid" INTERGER NOT NULL default 0,
-	"type" TEXT NOT NULL default "",
-	"data" TEXT NOT NULL default "",
-	"databackup" TEXT NOT NULL default "",
-	"version" INTERGER NOT NULL default 0,
 	"progress" TEXT NOT NULL default "",
+	"authorUid" INTERGER NOT NULL default 0,
+	"reviewUid" INTERGER NOT NULL default 0,
+	"mediaHash" TEXT NOT NULL UNIQUE,
+	"data" TEXT NOT NULL default "",
+	"version" INTERGER NOT NULL default 0,
 	"frames" INTERGER NOT NULL default 0,
 	"counts" INTERGER NOT NULL default 0,
-	"createtime" TEXT NOT NULL default "",
-	"modifytime" TEXT NOT NULL default "",
-	"memo" TEXT NOT NULL default "",
-	"hash" TEXT NOT NULL UNIQUE)`, global.DefaultDatabaseLabelTable)
+	"timeAuthorStart" TEXT NOT NULL default "",
+	"timeAuthorSubmit" TEXT NOT NULL default "",
+	"timeReviewStart" TEXT NOT NULL default "",
+	"timeReviewSubmit" TEXT NOT NULL default "",
+	"timeReviewConfirm" TEXT NOT NULL default "",
+	"memo" TEXT NOT NULL default "")`, global.DefaultDatabaseLabelTable)
 
 	_, err := DB().Execute(dbSql)
 	if err != nil {
