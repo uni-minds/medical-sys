@@ -1,0 +1,85 @@
+- id: index
+  name: 首页
+  controller: /ui/home
+  icon: fas fa-th
+  child: []
+- id: ""
+  name: 影像筛查
+  controller: '#'
+  icon: fas fa-search
+  child:
+    - id: screen-us
+      name: 超声挑图
+      controller: /ui/screen?type=us
+      icon: fas fa-image
+      child: []
+    - id: screen-ct
+      name: CT
+      controller: /ui/screen?type=ct
+      icon: far fa-images
+      child: []
+    - id: screen-stream
+      name: 流媒体
+      controller: /ui/screen?type=stream
+      icon: fas fa-video
+      child: []
+- id: ""
+  name: 标注检索
+  controller: '#'
+  icon: fas fa-edit
+  child:
+    - id: label-us
+      name: 超声标注
+      controller: /ui/medialist?type=us
+      icon: fas fa-notes-medical
+      child: []
+    - id: label-ct
+      name: CT标注
+      controller: /ui/medialist?type=ct
+      icon: fas fa-notes-medical
+      child: []
+    - id: label-stream
+      name: 流媒体
+      controller: /ui/medialist?type=stream
+      icon: fas fa-notes-medical
+      child: []
+- id: ""
+  name: 后台管理
+  controller: '#'
+  icon: fas fa-th
+  child:
+    - id: manage-blockchain
+      name: 区块链监控
+      controller: /ui/manage/blockchain
+      icon: fas fa-layer-group
+      child: []
+    - id: manage-browser
+      name: 区块链浏览器
+      controller: /ui/manage/browser
+      icon: fas fa-layer-group
+      child: []
+    - id: manage-tps-stress
+      name: 区块链压力测试
+      controller: /ui/manage/blockchain?action=tps-stress
+      icon: fas fa-layer-group
+      child: []
+    - id: manage-algo
+      name: 算法管理
+      controller: /ui/manage/algo
+      icon: fas fa-layer-group
+      child: []
+    - id: manage-user
+      name: 用户管理
+      controller: /ui/manage/user
+      icon: fas fa-layer-group
+      child: []
+    - id: management-upload-dicom
+      name: 上传-DICOM
+      controller: /ui/manage/upload?type=dicom
+      icon: fas fa-layer-group
+      child: []
+- id: algo-exec
+  name: 算法投放
+  controller: /mobi
+  icon: fab fa-html5
+  child: []

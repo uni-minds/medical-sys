@@ -1,4 +1,4 @@
-COMPILE_VER=2.4.0
+COMPILE_VER=3.0.0
 
 PREFIX := env GIT_TERMINAL_PROMPT=1
 FLAGS := -X 'main._BUILD_TIME_=$(shell date +"%Y-%m-%d %H:%M:%S")'
@@ -14,14 +14,17 @@ endif
 clean:
 	rm -rf build/
 
-build/medical_sys: loader/core_main.go
+build/medical_sys: core_main.go
 	${GOBUILD} -o $@ -ldflags "${FLAGS}" $^
 
 build/medical_sys_tools: loader/core_tools.go
 	${GOBUILD} -o $@ $^
 
 run:build/medical_sys
-	$^ -v -d
+	$^ -p -c ./config.yaml
+
+debug:build/medical_sys
+	$^ -v -d -p -c ./config.yaml
 
 run_tools:build/medical_sys_tools
 	$^
@@ -33,7 +36,7 @@ core:build/medical_sys
 build:core tools
 
 docker:core tools
-	docker build -t medisys:latest -f docker/Dockerfile .
+	docker build -t medisys:latest -f build_docker/Dockerfile .
 
 install: build
 	mkdir -p /usr/local/uni-ledger/medical-sys
@@ -41,7 +44,7 @@ install: build
 	then ln -s $(shell pwd)/application /usr/local/uni-ledger/medical-sys/;\
 	fi
 	cp build/* /usr/bin
-	cp install/medical-sys-base/lib/systemd/system/medical-sys.service /lib/systemd/system/
+	cp build_install/medical-sys-base/lib/systemd/system/medical-sys.service /lib/systemd/system/
 	systemctl daemon-reload
 	systemctl enable medical-sys
 

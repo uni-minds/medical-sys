@@ -9,7 +9,8 @@ package controller
 import (
 	"encoding/json"
 	"gitee.com/uni-minds/medical-sys/module"
-	"gitee.com/uni-minds/medical-sys/tools"
+	"gitee.com/uni-minds/utils/tools"
+
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

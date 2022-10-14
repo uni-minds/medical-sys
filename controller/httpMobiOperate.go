@@ -9,7 +9,7 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
-	"gitee.com/uni-minds/medical-sys/tools"
+	"gitee.com/uni-minds/utils/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"

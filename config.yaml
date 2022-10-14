@@ -1,0 +1,30 @@
+cookiemaxage: 86400
+userregister:
+    enable: false
+    regcode: BUAA
+ports:
+    http: 8080
+    rtsp: 5540
+    rpc: 8096
+rtsp:
+    uploadroot: ./tmp/rtsp
+    networkbuffer: 102400
+    timeout: 0
+    closeold: false
+    playerqueuelimit: 0
+    droppacketwhenpaused: false
+    gopcacheenable: false
+    debuglogenable: true
+    savestreamtolocal: true
+    ffmpegpath: ffmpeg
+    ffmpegencoder: default
+    tsdurationsecond: 30
+    authorizationenable: false
+    clientuser: admin
+    clientpassword: admin
+paths:
+    application: ./application
+    media: ./tmp/media
+    cache: ./tmp/cache
+    log: ./tmp/log
+    database: ./tmp/database

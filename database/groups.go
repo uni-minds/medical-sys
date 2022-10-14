@@ -11,105 +11,109 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/uni-minds/medical-sys/global"
-	"gitee.com/uni-minds/medical-sys/tools"
+	"gitee.com/uni-minds/utils/tools"
 	"strconv"
 	"strings"
 )
 
 const (
-	GroupTypeLabelMedia  = "label_media"
-	GroupTypeLabelDicom  = "label_dicom"
-	GroupTypeScreenDicom = "screen_dicom"
-
-	GroupContainTypeInstanceId = "instance_id"
-	GroupContainTypeStudiesId  = "studies_id"
-	GroupContainTypeMediaId    = "mid"
+	GroupTypeLabelMedia        = "label_media"
+	GroupTypeLabelDicom        = "label_dicom"
+	GroupTypeLabelStream       = "label_stream"
+	GroupTypeScreenDicom       = "screen_dicom"
+	GroupTypeAdmin             = "admin"
 	GroupContainTypeUser       = "user"
+	GroupContainTypeMediaId    = "media_uuid"
+	GroupContainTypeInstanceId = "instance_id"
+	GroupContainTypeHls        = "hls"
+	GroupContainTypeStudiesId  = "studies_id"
 )
-
-type GroupInfo struct {
-	Gid         int    `gorose:"gid"`
-	GroupName   string `gorose:"group_name"`
-	GroupType   string `gorose:"group_type"`
-	DisplayName string `gorose:"display_name"`
-	Users       string `gorose:"users"`
-	Memo        string `gorose:"memo"`
-	ContainData string `gorose:"contain_data"`
-	ContainType string `gorose:"contain_type"`
-	MediaCounts int    `gorose:"media_counts"`
-}
-
-func (*GroupInfo) TableName() string {
-	return global.DefaultDatabaseGroupTable
-}
 
 func initGroupDB() {
 	dbSql := fmt.Sprintf(`create table IF NOT EXISTS "%s" (
-    gid          INTEGER not null primary key autoincrement,
-    group_name   TEXT default "" not null,
-    display_name TEXT default "" not null,
-    contain_data TEXT default "[]" not null,
-    contain_type text,
-    users        TEXT default "{}" not null,
-    memo         TEXT default "" not null,
-    group_type   TEXT default "" not null,
-    media_counts int  default 0 not null);`, global.DefaultDatabaseGroupTable)
+    id             INTEGER           not null
+        primary key autoincrement,
+    name           TEXT default ''   not null,
+    type           TEXT default ''   not null,
+    users          TEXT default '{}' not null,
+    display_name   TEXT default ''   not null,
+    contain_data   TEXT default ''   not null,
+    contain_type   TEXT default ''   not null,
+    contain_counts INT  default 0    not null,
+    memo           TEXT default ''   not null
+);`, global.DefaultDatabaseGroupTable)
 
 	_, err := DB().Execute(dbSql)
 	if err != nil {
-		log("E", err.Error())
+		log.Error(err.Error())
 	}
 }
 
-func GroupGetAll() (gl []GroupInfo, err error) {
-	err = DB().Table(&gl).OrderBy("gid").Select()
+func GroupGetAll() (groupInfos []DbStructGroup, err error) {
+	err = DB().Table(&groupInfos).Select()
 	return
 }
 
-func GroupCreate(gi GroupInfo) (gid int, err error) {
-	gt, err := GroupGet(gi.GroupName)
+func GroupCreate(info DbStructGroup) (gid int, err error) {
+	gt, err := GroupGet(info.Id)
 	if err != nil {
-		gi.Gid = 0
-		gi.GroupName = strings.ToLower(gi.GroupName)
-		_, err = DB().Table(global.DefaultDatabaseGroupTable).Data(gi).Insert()
-		gi, _ = GroupGet(gi.GroupName)
-		return gi.Gid, err
+		info.Id = 0
+		info.Name = strings.ToLower(info.Name)
+		_, err = DB().Table(global.DefaultDatabaseGroupTable).Data(info).Insert()
+		info, _ = GroupGet(info.Name)
+		return info.Id, err
 	}
 
-	return gt.Gid, errors.New(global.EGroupAlreadyExisted)
+	return gt.Id, errors.New(global.EGroupAlreadyExisted)
 }
-func GroupGet(i interface{}) (gi GroupInfo, err error) {
+func GroupGet(i interface{}) (info DbStructGroup, err error) {
 	switch i.(type) {
 	case int:
-		err = DB().Table(&gi).Where("gid", "=", i).Select()
-		if gi.Gid == 0 {
-			err = errors.New(global.EGroupNotExisted)
+		err = DB().Table(&info).Where("id", "=", i).Select()
+
+	case string:
+		err = DB().Table(&info).Where("name", "=", strings.ToLower(i.(string))).Select()
+	}
+
+	if err != nil {
+		return info, err
+	} else if info.Id == 0 {
+		return info, fmt.Errorf(global.EGroupNotExisted)
+	} else {
+		return info, nil
+	}
+}
+
+func GroupDelete(i interface{}) error {
+	switch i.(type) {
+	case int:
+		if i.(int) > 1 {
+			_, err := DB().Table(global.DefaultDatabaseGroupTable).Where("id", i).Delete()
+			return err
+		} else {
+			return fmt.Errorf("组序号异常: %d", i)
 		}
 
 	case string:
-		err = DB().Table(&gi).Where("group_name", "=", strings.ToLower(i.(string))).Select()
-		if gi.Gid == 0 {
-			err = errors.New(global.EGroupNotExisted)
+		if i.(string) != "" {
+			_, err := DB().Table(global.DefaultDatabaseGroupTable).Where("name", i).Delete()
+			return err
+		} else {
+			return fmt.Errorf("组序号异常: %d", i)
 		}
-	}
-	return
-}
-func GroupDelete(gid int) error {
-	if gid > 1 {
-		_, err := DB().Table(global.DefaultDatabaseGroupTable).Where("gid", "=", gid).Delete()
-		return err
-	} else {
+
+	default:
 		return errors.New(global.EGroupForbidden)
 	}
 }
 
-func groupUpdateCore(gid int, data interface{}) error {
-	_, err := DB().Table(global.DefaultDatabaseGroupTable).Data(data).Where("gid", "=", gid).Update()
+func groupUpdateCore(id int, data interface{}) error {
+	_, err := DB().Table(global.DefaultDatabaseGroupTable).Data(data).Where("id", id).Update()
 	return err
 }
 
 func GroupUpdateName(gid int, gn string) error {
-	data := map[string]interface{}{"group_name": gn}
+	data := map[string]interface{}{"name": gn}
 	return groupUpdateCore(gid, data)
 }
 func GroupUpdateDisplayName(gid int, name string) error {
@@ -117,7 +121,7 @@ func GroupUpdateDisplayName(gid int, name string) error {
 	return groupUpdateCore(gid, data)
 }
 func GroupUpdateGroupType(gid int, tp string) error {
-	data := map[string]interface{}{"group_type": tp}
+	data := map[string]interface{}{"type": tp}
 	return groupUpdateCore(gid, data)
 }
 func GroupUpdateContainType(gid int, tp string) error {
@@ -125,8 +129,8 @@ func GroupUpdateContainType(gid int, tp string) error {
 	return groupUpdateCore(gid, data)
 }
 
-func GroupGetMediaId(gid int) (mids []int, err error) {
-	mIndex, mType, err := GroupGetContains(gid)
+func GroupGetContainId(id int) (mids []int, err error) {
+	mIndex, mType, err := GroupGetContains(id)
 	switch mType {
 	case GroupContainTypeMediaId:
 		for _, index := range mIndex {
@@ -139,27 +143,27 @@ func GroupGetMediaId(gid int) (mids []int, err error) {
 	}
 }
 
-func GroupGetContains(gid int) (mediaIndex []string, mediaType string, err error) {
-	gi, err := GroupGet(gid)
+func GroupGetContains(id int) (containIndex []string, containType string, err error) {
+	info, err := GroupGet(id)
 	if err != nil {
 		return nil, "", err
 	}
 
 	var data []string
-	err = json.Unmarshal([]byte(gi.ContainData), &data)
+	if err := json.Unmarshal([]byte(info.ContainData), &data); err != nil {
+		data = make([]string, 0)
 
-	switch gi.GroupType {
-	case GroupTypeLabelDicom, GroupTypeScreenDicom:
-		return data, gi.ContainType, err
+	}
 
-	case GroupTypeLabelMedia:
-		return data, gi.ContainType, err
+	switch info.Type {
+	case GroupTypeLabelDicom, GroupTypeScreenDicom, GroupTypeLabelMedia, GroupTypeLabelStream, "default":
+		return data, info.ContainType, err
 
-	case "admin":
+	case GroupTypeAdmin:
 		return nil, "admin", nil
 
 	default:
-		return nil, "", errors.New(fmt.Sprint("unknown group type:", gi.GroupType))
+		return nil, "", fmt.Errorf("unknown group type: %s", info.Type)
 
 	}
 }
@@ -281,12 +285,12 @@ func groupUpdateContains(gid int, mediaIndex interface{}) error {
 
 	bs, _ := json.Marshal(index)
 
-	data := map[string]interface{}{"media_counts": len(index), "contain_data": string(bs)}
+	data := map[string]interface{}{"contain_counts": len(index), "contain_data": string(bs)}
 	return groupUpdateCore(gid, data)
 }
 
 func GroupRemoveMedia(gid, mid int) error {
-	mids, err := GroupGetMediaId(gid)
+	mids, err := GroupGetContainId(gid)
 	if err != nil {
 		return err
 	}
@@ -344,11 +348,11 @@ func GroupListByUser(uid int) (gids []int, err error) {
 	}
 
 	for _, gl := range gls {
-		p, err := GroupGetUserPermissions(gl.Gid, uid)
+		p, err := GroupGetUserPermissions(gl.Id, uid)
 		if err != nil || !p.ListMedia {
 			continue
 		} else {
-			gids = append(gids, gl.Gid)
+			gids = append(gids, gl.Id)
 		}
 	}
 	return gids, nil

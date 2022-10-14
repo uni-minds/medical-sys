@@ -10,11 +10,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	pacs_global "gitee.com/uni-minds/bridge-pacs/global"
 	"gitee.com/uni-minds/medical-sys/database"
 	"gitee.com/uni-minds/medical-sys/global"
-	"gitee.com/uni-minds/medical-sys/tools"
-	"sort"
-	"strconv"
+	"gitee.com/uni-minds/utils/tools"
 	"strings"
 	"time"
 )
@@ -38,7 +37,7 @@ type UserGroupInfo struct {
 }
 
 func UserCreate(username, password, email, realname, memo string) error {
-	u := database.UserInfo{
+	u := database.DbStructUser{
 		Username: username,
 		Email:    email,
 		Realname: realname,
@@ -74,20 +73,20 @@ func UserGetGroups(uid int, groupType string) (gids []int) {
 	if UserIsAdmin(uid) {
 		gl, _ := database.GroupGetAll()
 		for _, v := range gl {
-			if groupType == "*" || strings.Contains(v.GroupType, groupType) {
-				gids = append(gids, v.Gid)
+			if groupType == "*" || strings.Contains(v.Type, groupType) {
+				gids = append(gids, v.Id)
 			}
 		}
 	} else {
 		userGroupIds, err := database.GroupListByUser(uid)
 		if err != nil {
-			log("e", err.Error())
+			log.Println("e", err.Error())
 		}
 
 		for _, gid := range userGroupIds {
 			if gi, err := database.GroupGet(gid); err != nil {
-				log("e", err.Error())
-			} else if groupType == "*" || strings.Contains(gi.GroupType, groupType) {
+				log.Println("e", err.Error())
+			} else if groupType == "*" || strings.Contains(gi.Type, groupType) {
 				gids = append(gids, gid)
 			}
 		}
@@ -95,160 +94,109 @@ func UserGetGroups(uid int, groupType string) (gids []int) {
 	return gids
 }
 
-func UserGetGroupContains(uid, gid int) (mediaIndex []string, mediaType string, err error) {
+func UserGetGroupContains(uid, gid int) (idx []string, containType string, err error) {
 	level := GroupGetUserLevel(gid, uid)
-	if level < GroupLevelGuest && !UserIsAdmin(uid) {
+	if UserIsAdmin(uid) || global.FlagGetDebug() || level >= GroupLevelGuest {
+		return database.GroupGetContains(gid)
+	} else {
 		return nil, "", errors.New("user forbidden")
 	}
-
-	return database.GroupGetContains(gid)
 }
 
-func UserGetGroupContainsSelector(uid, gid int, sortField, sortOrder string) []string {
-	mediaIndex, _, err := UserGetGroupContains(uid, gid)
+func UserGetGroupContainsWithSelector(uid, gid int, selectView, sortField, sortOrder string, start, count int) (result []MediaInfo, total int, err error) {
+	mediaUUIDs, mediaType, err := UserGetGroupContains(uid, gid)
 	if err != nil {
-		return nil
+		return nil, 0, err
 	}
 
-	// prepare database
-	data := make(map[string]interface{}, 0)
-	switch sortField {
-	case "view":
-		for _, mid := range mediaIndex {
-			id, err := strconv.Atoi(mid)
-			if err != nil {
-				// mediahash
-				mi, _ := database.MediaGet(mid)
-				data[mid] = mi.IncludeViews
+	switch mediaType {
+	case database.GroupContainTypeHls, database.GroupContainTypeMediaId:
+		infos, err := database.GetMedia().Selector(mediaUUIDs, sortField, sortOrder == "asc")
+		if err != nil {
+			return nil, 0, err
+		} else {
+			total = len(infos)
+
+			if len(infos) > start {
+				infos = infos[start:]
 			} else {
-				// mid
-				mi, _ := database.MediaGet(id)
-				data[mid] = mi.IncludeViews
+				return nil, total, nil
+			}
+
+			if len(infos) > count {
+				infos = infos[:count]
+			}
+
+			result = make([]MediaInfo, 0)
+			for _, info := range infos {
+				if info.Height == 0 || info.Width == 0 || info.Fps <= 0 {
+					if err = MediaRescan(info.MediaUUID); err != nil {
+						log.Println("e", "media rescan", info.MediaUUID, err.Error())
+						continue
+					}
+
+					info, _ = database.GetMedia().Get(info.MediaUUID)
+				}
+				result = append(result, ConvertMediaInfoFromDbMedia(info))
+			}
+			return result, total, nil
+		}
+
+	case database.GroupContainTypeStudiesId:
+		instanceIDs, err := MediaGetInstanceIdsByStudiesIds(mediaUUIDs, true)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		ps := database.BridgeGetPacsServerHandler()
+		infos, err := ps.FindInstanceByIdsLocal(instanceIDs, 10000)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// ignore instance without label view
+		tmp := make([]pacs_global.InstanceInfo, 0)
+		for _, info := range infos {
+			if "" != info.LabelView && ("" == selectView || info.LabelView == selectView) {
+				tmp = append(tmp, info)
 			}
 		}
 
-	case "memo":
-		for _, mid := range mediaIndex {
-			id, err := strconv.Atoi(mid)
-			if err != nil {
-				// mediahash
-				mi, _ := database.MediaGet(mid)
-				data[mid] = mi.Memo
-			} else {
-				mi, _ := database.MediaGet(id)
-				data[mid] = mi.Memo
-			}
+		total = len(tmp)
+
+		if len(tmp) > start {
+			tmp = tmp[start:]
+		} else {
+			return nil, total, nil
 		}
 
-	case "duration":
-		for _, mid := range mediaIndex {
-			id, err := strconv.Atoi(mid)
-			if err != nil {
-				// mediahash
-				mi, _ := database.MediaGet(mid)
-				data[mid] = mi.Duration
-			} else {
-				mi, _ := database.MediaGet(id)
-				data[mid] = mi.Duration
-			}
+		if len(tmp) > count {
+			tmp = tmp[:count]
 		}
 
-	case "name":
-		for _, mid := range mediaIndex {
-			id, err := strconv.Atoi(mid)
-			if err != nil {
-				// mediahash
-				mi, _ := database.MediaGet(mid)
-				data[mid] = mi.DisplayName
-			} else {
-				mi, _ := database.MediaGet(id)
-				data[mid] = mi.DisplayName
-			}
-		}
-
-	case "frames":
-		for _, mid := range mediaIndex {
-			id, err := strconv.Atoi(mid)
-			if err != nil {
-				// mediahash
-				mi, _ := database.MediaGet(mid)
-				data[mid] = mi.Frames
-			} else {
-				mi, _ := database.MediaGet(id)
-				data[mid] = mi.Frames
-			}
-		}
-
-	case "authors":
-		for _, mid := range mediaIndex {
-			id, err := strconv.Atoi(mid)
-			if err != nil {
-				// mediahash
-				mi, _ := database.MediaGet(mid)
-				data[mid] = mi.LabelAuthorUid
-			} else {
-				mi, _ := database.MediaGet(id)
-				data[mid] = mi.LabelAuthorUid
-			}
-		}
-
-	case "reviews":
-		for _, mid := range mediaIndex {
-			id, err := strconv.Atoi(mid)
-			if err != nil {
-				// mediahash
-				mi, _ := database.MediaGet(mid)
-				data[mid] = mi.LabelReviewUid
-			} else {
-				mi, _ := database.MediaGet(id)
-				data[mid] = mi.LabelReviewUid
-			}
-		}
+		result := ConvertMediaInfoFromInstanceInfos(tmp)
+		return result, total, nil
 
 	default:
-		// mid
-		switch sortOrder {
-		case "desc":
-			sort.Sort(sort.Reverse(sort.StringSlice(mediaIndex)))
-
-		default:
-			sort.Strings(mediaIndex)
-		}
-		return mediaIndex
+		return nil, 0, fmt.Errorf("unknow media type: %s", mediaType)
 	}
-
-	//d := tools.MediaSorter(data)
-	//switch sortOrder {
-	//case "desc":
-	//	// 降序
-	//	sort.Sort(sort.Reverse(d))
-	//
-	//default:
-	//	// 升序
-	//	sort.Sort(d)
-	//}
-	//
-	//mediaIndex,mediaType,err = make([]int, 0)
-	//for _, v := range d {
-	//	mediaIndex,mediaType,err = append(mediaIndex,mediaType,err, v.Mid)
-	//}
-	return mediaIndex
 }
 
 func UserGetUidFromMemo(memo string) int {
 	u, err := database.UserGetManual("memo", memo)
 	if err != nil {
-		log("i", "Find by memo E:", err.Error())
+		log.Println("i", "Find by memo E:", err.Error())
 		return 0
 	}
 	return u.Uid
 }
+
 func UserGetMediaHash(uid, mid int) string {
 	mi, err := userGetMediaInfo(uid, mid)
 	if err != nil {
 		return ""
 	} else {
-		return mi.Hash
+		return mi.MediaUUID
 	}
 }
 func UserGetMediaMemo(uid, mid int) string {
@@ -262,29 +210,29 @@ func UserGetMediaMemo(uid, mid int) string {
 func UserGetMid(uid int, hash string) int {
 	mi, err := userGetMediaInfo(uid, hash)
 	if err != nil {
-		log("i", "E UserGetMid", err.Error())
+		log.Error(fmt.Sprintf("UserGetMid: %s", err.Error()))
 		return 0
 	} else {
-		return mi.Mid
+		return mi.Id
 	}
 }
-func userGetMediaInfo(uid int, i interface{}) (mi database.MediaInfo, err error) {
-	tmp, err := database.MediaGet(i)
+func userGetMediaInfo(uid int, i interface{}) (mi MediaInfo, err error) {
+	info, err := MediaGet(i)
 	if err != nil {
 		return
 	}
 	if UserIsAdmin(uid) {
-		log("i", "Admins override.")
-		return tmp, nil
+		log.Println("Admins override.")
+		return info, nil
 	}
 
 	permissionViewMedia := false
 
 	gids := UserGetGroups(uid, "")
 	for _, gid := range gids {
-		mids := GroupGetMedia(gid)
-		for _, mid := range mids {
-			if mid == tmp.Mid {
+		containIndex, _ := GroupGetContainMedia(gid)
+		for _, mediaUUID := range containIndex {
+			if mediaUUID == info.MediaUUID {
 				if GroupGetUserLevel(gid, uid) > GroupLevelNotAllowed {
 					permissionViewMedia = true
 					break
@@ -296,7 +244,7 @@ func userGetMediaInfo(uid int, i interface{}) (mi database.MediaInfo, err error)
 		}
 	}
 	if permissionViewMedia {
-		return tmp, nil
+		return info, nil
 	} else {
 		return mi, errors.New(global.EMediaForbidden)
 	}
@@ -308,7 +256,7 @@ func UserIsAdmin(uid int) bool {
 		return false
 	}
 
-	users, err := database.GroupGetUsers(gi.Gid)
+	users, err := database.GroupGetUsers(gi.Id)
 	_, ok := users[uid]
 	return ok
 }
@@ -318,8 +266,8 @@ func UserSetMediaMemo(uid, mid int, memo string) error {
 	if err != nil {
 		return err
 	}
-	log("i", "Memo update:", mid, uid, mi.Memo, "->", memo)
-	return database.MediaUpdateMemo(mid, memo)
+	log.Println("i", "Memo update:", mid, uid, mi.Memo, "->", memo)
+	return database.GetMedia().UpdateMemo(mid, memo)
 }
 
 func UserList() (jsonstr string) {
@@ -362,10 +310,10 @@ func UserGroupsList(uid int) (groups []UserGroupInfo) {
 	groups = make([]UserGroupInfo, 0)
 
 	for _, v := range gl {
-		log("i", v)
+		log.Println("i", v)
 		//g := UserGroupInfo{
-		//	Gid:       v.Gid,
-		//	GroupName: v.GroupName,
+		//	Id:       v.Id,
+		//	Name: v.Name,
 		//}
 	}
 	return
@@ -375,11 +323,11 @@ func UserGroupsList(uid int) (groups []UserGroupInfo) {
 func UserCheckPassword(username, password string) (uid int) {
 	u, err := database.UserGet(username)
 	if err != nil {
-		log("e", "userLogin:", err.Error())
+		log.Println("e", "userLogin:", err.Error())
 		return -1 //用户不存在
 	}
 	if u.Activate == 0 {
-		log("e", fmt.Sprintf("login user: %s is deactivate", username))
+		log.Println("e", fmt.Sprintf("login user: %s is deactivate", username))
 		return -2 //账号未确认
 	}
 
@@ -390,10 +338,10 @@ func UserCheckPassword(username, password string) (uid int) {
 
 	if u.Password != result {
 		t := u.LoginFailCount + 1
-		log("e", fmt.Sprintf("login failed: %s, %d times", username, t))
+		log.Println("e", fmt.Sprintf("login failed: %s, %d times", username, t))
 		database.UserUpdateTryFailureCount(u.Uid, t)
 		if t >= 5 {
-			log("e", "user account now deactivate")
+			log.Println("e", "user account now deactivate")
 			database.UserUpdateAccountActiveType(u.Uid, -1)
 		}
 		return -3 //密码错
@@ -406,7 +354,7 @@ func UserCheckPassword(username, password string) (uid int) {
 		}
 	}
 
-	log("i", fmt.Sprintf("login success: %s", username))
+	log.Println("i", fmt.Sprintf("login success: %s", username))
 	database.UserUpdateTryFailureCount(u.Uid, 0)
 	database.UserUpdateLoginCount(u.Uid, u.LoginCount+1)
 
@@ -437,15 +385,15 @@ func UserDelete(username string) error {
 	}
 	return database.UserDelete(u.Uid)
 }
-func UserGetAll() map[int]database.UserInfo {
+func UserGetAll() map[int]database.DbStructUser {
 
 	uis, err := database.UserGetAll()
 	if err != nil {
-		log("e", "userGetAll:", err.Error())
+		log.Println("e", "userGetAll:", err.Error())
 		return nil
 	}
 
-	data := make(map[int]database.UserInfo, 0)
+	data := make(map[int]database.DbStructUser, 0)
 	for _, v := range uis {
 		data[v.Uid] = v
 	}

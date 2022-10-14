@@ -23,10 +23,7 @@ const (
 func RootGet(ctx *gin.Context) {
 	switch ctx.Param("op") {
 	case "login":
-		ctx.HTML(http.StatusOK, "userLogin.html", gin.H{
-			"title":     "用户登录 ｜ Medi-sys",
-			"masterApi": "/api/user/login",
-		})
+		ctx.HTML(http.StatusOK, "userLogin.html", nil)
 
 	case "logout":
 		valid, uid := CookieValidUid(ctx)
@@ -37,21 +34,15 @@ func RootGet(ctx *gin.Context) {
 		ctx.Redirect(http.StatusFound, "/")
 
 	case "forget":
-		ctx.HTML(http.StatusOK, "userForget.html", gin.H{
-			"title":     "重置密码 | Medi-sys",
-			"masterApi": "/api/user/forget",
-		})
+		ctx.HTML(http.StatusOK, "userForget.html", nil)
 
 	case "register":
-		if !global.GetAppSettings().UserRegisterEnable {
+		if !global.GetAppSettings().UserRegister.Enable {
 			ctx.Redirect(http.StatusFound, "/")
 			return
 		}
 
-		ctx.HTML(http.StatusOK, "userRegister.html", gin.H{
-			"title":     "用户注册 | Medi-sys",
-			"masterApi": "/api/user/register",
-		})
+		ctx.HTML(http.StatusOK, "userRegister.html", nil)
 
 	default:
 		valid, _ := CookieValidUid(ctx)

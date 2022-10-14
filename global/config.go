@@ -8,70 +8,106 @@ package global
 
 import (
 	"fmt"
-	"gitee.com/uni-minds/medical-sys/tools"
-	"time"
+	utils_tools "gitee.com/uni-minds/utils/tools"
+	"path"
+	"path/filepath"
 )
 
 var config AppSettings
 var configFile = "/usr/local/uni-ledger/medical-sys/config.yaml"
 
+type Rtsp struct {
+	UploadRoot           string
+	NetworkBuffer        int
+	Timeout              int
+	CloseOld             bool
+	PlayerQueueLimit     int
+	DropPacketWhenPaused bool
+	GopCacheEnable       bool
+	DebugLogEnable       bool
+	SaveStreamToLocal    bool
+	FFmpegPath           string
+	FFmpegEncoder        string
+	TsDurationSecond     int
+	AuthorizationEnable  bool
+	ClientUser           string
+	ClientPassword       string
+}
+
+type UserRegister struct {
+	Enable  bool
+	RegCode string
+}
+
+type Ports struct {
+	HTTP int
+	RTSP int
+	RPC  int
+}
+
+type Paths struct {
+	Application string
+	Media       string
+	Cache       string
+	Log         string
+	Database    string
+}
+
 type AppSettings struct {
-	UserRegisterEnable bool
-	UserRegisterCode   string
-	CookieMaxAge       int
-	SystemListenPort   int
-	SystemUseHttps     bool
-	PathApp            string
-	PathMedia          string
-	PathPacsMediaCache string
-	DbFileMain         string
-	DbFilePacs         string
-	DbFileHis          string
-	SystemLogFolder    string
+	CookieMaxAge int
+	UserRegister
+	Ports
+	Rtsp
+	Paths
 }
 
-type Version struct {
-	GitCommit string
-	Version   string
-	BuildTime string
+func Init(CfgFile string) AppSettings {
+	cfg, _ := filepath.Abs(CfgFile)
+	fmt.Printf("CFG File: %s\n", cfg)
+
+	config = getDefaultConfig()
+	return loadConfig(CfgFile)
 }
 
-func init() {
-	fmt.Println("module init: global")
-	config = AppSettings{
-		UserRegisterEnable: true,
-		UserRegisterCode:   "BUAA",
-		CookieMaxAge:       24 * int(time.Hour.Seconds()),
-		SystemListenPort:   80,
-		SystemUseHttps:     false,
-		PathApp:            "/usr/local/uni-ledger/medical-sys/application",
-		PathMedia:          "/usr/local/uni-ledger/medical-sys/application/media",
-		PathPacsMediaCache: "/data/cache",
-		DbFileMain:         "/usr/local/uni-ledger/medical-sys/application/database/db.sqlite",
-		DbFilePacs:         "/usr/local/uni-ledger/medical-sys/application/database/db_pacs.sqlite",
-		DbFileHis:          "/usr/local/uni-ledger/medical-sys/application/database/db_his.sqlite",
-		SystemLogFolder:    "/usr/local/uni-ledger/medical-sys/log",
-	}
-	loadConfig(configFile)
-}
-
-func loadConfig(file string) {
+func loadConfig(file string) AppSettings {
 	var c AppSettings
-	if err := tools.LoadYaml(file, &c); err == nil {
+	if err := utils_tools.LoadYaml(file, &c); err == nil {
 		config = c
 	} else {
 		fmt.Println("E;Load CFG:", err.Error())
-		saveConfig(file)
 	}
+	saveConfig(file)
+	return c
 }
 
 func saveConfig(file string) {
-	tools.SaveYaml(file, config)
+	utils_tools.SaveYaml(file, config)
 	configFile = file
 }
 
 func GetAppSettings() AppSettings {
 	return config
+}
+
+func GetPaths() Paths {
+	return config.Paths
+}
+
+func GetDbFile(selector string) (string, error) {
+	switch selector {
+	case "main":
+		return filepath.Abs(path.Join(config.Paths.Database, "db.sqlite"))
+	case "pacs":
+		return filepath.Abs(path.Join(config.Paths.Database, "db_pacs.sqlite"))
+	case "his":
+		return filepath.Abs(path.Join(config.Paths.Database, "db_his.sqlite"))
+	default:
+		return "", fmt.Errorf("unknown db selector")
+	}
+}
+
+func GetRtspSettings() Rtsp {
+	return config.Rtsp
 }
 
 func SetAppSettings(data AppSettings) {
@@ -84,5 +120,5 @@ func GetCookieMaxAge() int {
 }
 
 func GetUserRegCode() string {
-	return config.UserRegisterCode
+	return config.UserRegister.RegCode
 }

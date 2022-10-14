@@ -11,7 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/uni-minds/medical-sys/global"
-	"gitee.com/uni-minds/medical-sys/tools"
+	"gitee.com/uni-minds/utils/tools"
 	"net/url"
 )
 
@@ -56,24 +56,24 @@ func UpdatePacsNodes() {
 	u := global.GetEdaLocalUrl()
 	u.Path = "/api/v1/node/list"
 	if resp, _, err = tools.HttpGet(u.String()); err != nil {
-		log("e", err.Error())
+		log.Println("e", err.Error())
 	} else if resp.Code != 200 {
-		log("e", resp.Message)
+		log.Println("e", resp.Message)
 	}
 	bs, _ := json.Marshal(resp.Data)
 	if err = json.Unmarshal(bs, &list); err != nil {
-		log("e", err.Error())
+		log.Println("e", err.Error())
 	}
 
 	u.Path = "/api/v1/node/status"
 	if resp, _, err = tools.HttpGet(u.String()); err != nil {
-		log("e", err.Error())
+		log.Println("e", err.Error())
 	} else if resp.Code != 200 {
-		log("e", resp.Message)
+		log.Println("e", resp.Message)
 	}
 	bs, _ = json.Marshal(resp.Data)
 	if err = json.Unmarshal(bs, &list1); err != nil {
-		log("e", err.Error())
+		log.Println("e", err.Error())
 	}
 
 	list = append(list, list1)
@@ -82,15 +82,15 @@ func UpdatePacsNodes() {
 	for _, node := range list {
 		u.Host = fmt.Sprintf("%s:80", node.IP)
 
-		log("i", "load dbs on eda", u.String())
+		log.Println("i", "load dbs on eda", u.String())
 		if resp, _, err := tools.HttpGet(u.String()); err != nil {
-			log("e", err.Error())
+			log.Println("e", err.Error())
 		} else {
 			var dbs []string
 			bs, _ := json.Marshal(resp.Data)
 			err := json.Unmarshal(bs, &dbs)
 			if err != nil {
-				log("e", err.Error())
+				log.Println("e", err.Error())
 			} else {
 				for _, db := range dbs {
 					NodePacsSetAddr(node.Name, db, url.URL{
@@ -106,7 +106,7 @@ func UpdatePacsNodes() {
 }
 
 func NodePacsGetAddr(node, db string) (u url.URL, err error) {
-	log("i", pacsDbs)
+	log.Println("i", pacsDbs)
 	for _, p := range pacsDbs {
 		if p.DB == db && p.Nodename == node {
 			return p.Addr, nil
@@ -128,7 +128,7 @@ func NodePacsSetAddr(nodename, db string, u url.URL) {
 		Addr:     u,
 	}
 	pacsDbs = append(pacsDbs, pdb)
-	log("i", "pacsInsert<-", pdb)
+	log.Println("i", "pacsInsert<-", pdb)
 }
 
 func NodeSearchPacsDb(data PacsSearchParams) (resp []map[string]DicomItem, err error) {
@@ -145,15 +145,15 @@ func NodeSearchPacsDb(data PacsSearchParams) (resp []map[string]DicomItem, err e
 	//default:
 	//	u, err = NodePacsGetAddr(node, db)
 	//}
-	//log("i", "db", node, db, u)
+	//log.Println("i", "db", node, db, u)
 	//
 	//_, bs, err := tools.HttpPost(u.String(), data, "json")
 	//
 	//if err != nil {
-	//	log("e", err.Error())
+	//	log.Println("e", err.Error())
 	//	return nil, err
 	//} else if err = json.Unmarshal(bs, &pacsResponseData); err != nil {
-	//	log("e", err.Error(), string(bs))
+	//	log.Println("e", err.Error(), string(bs))
 	//} else {
 	//	for k, _ := range pacsResponseData {
 	//		pacsResponseData[k]["nodename"] = DicomItem{
@@ -182,10 +182,10 @@ func NodePacsGetInstanceWado(node, lib string, data PacsGetWado) (bs []byte, err
 	u.Path = "/dcm4chee-arc/aets/AS_RECEIVED/wado"
 	u.RawQuery = p.Encode()
 
-	log("i", "get->", u.String())
+	log.Println("get->", u.String())
 	_, bs, err = tools.HttpGet(u.String())
 	if err != nil {
-		log("e", err.Error())
+		log.Error(err.Error())
 		return nil, err
 	} else {
 		return bs, nil

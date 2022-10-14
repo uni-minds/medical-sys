@@ -7,6 +7,7 @@ import (
 )
 
 func ApiHisSearch(ctx *gin.Context) {
+	// /api/v1/his/:code
 	code := ctx.Param("code")
 	data, err := database.BridgeGetHisDatabaseRetrieve(code)
 	if err != nil {

@@ -1,12 +1,30 @@
-userregisterenable: true
-userregistercode: BUAA
 cookiemaxage: 86400
-systemlistenport: 80
-systemusehttps: false
-pathapp: /usr/local/uni-ledger/medical-sys/application
-pathmedia: /data/media
-pathpacsmediacache: /data/cache
-dbfilemain: /data/database/db.sqlite
-dbfilepacs: /data/database/db_pacs.sqlite
-dbfilehis: /data/database/db_his.sqlite
-systemlogfolder: /data/log
+userregister:
+    enable: true
+    regcode: "BUAA"
+ports:
+    http: 80
+    rtsp: 554
+    rpc: 8096
+rtsp:
+    uploadroot: "/data/rtsp"
+    networkbuffer: 102400
+    timeout: 0
+    closeold: false
+    playerqueuelimit: 0
+    droppacketwhenpaused: false
+    gopcacheenable: false
+    debuglogenable: true
+    savestreamtolocal: true
+    ffmpegpath: ffmpeg
+    ffmpegencoder: default
+    tsdurationsecond: 30
+    authorizationenable: false
+    clientuser: admin
+    clientpassword: admin
+paths:
+    application: "/usr/local/uni-ledger/medical-sys/application"
+    media: "/data/media"
+    cache: "/data/cache"
+    log: "/data/log"
+    database: "/data/database"

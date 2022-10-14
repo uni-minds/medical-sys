@@ -8,7 +8,7 @@ package manager
 
 import (
 	"gitee.com/uni-minds/medical-sys/database"
-	"gitee.com/uni-minds/medical-sys/tools"
+	"gitee.com/uni-minds/utils/tools"
 	"sync"
 	"time"
 )

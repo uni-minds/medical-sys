@@ -1,21 +1,21 @@
 package module
 
-var progressData map[int]string
+var progressData = map[int]string{
+	0: "待领取",
+	1: "标注中",
+	2: "待审核",
+	3: "审核中",
+	4: "审核已退回",
+	5: "待重审",
+	6: "重审中",
+	7: "审核完成",
+}
 
-func ProgressQueryString(key int) string {
-	value, ok := progressData[key]
+func ProgressQuery(status int) string {
+	value, ok := progressData[status]
 	if ok {
 		return value
 	} else {
-		return ""
+		return "状态异常"
 	}
-}
-
-func ProgressQueryValue(str string) int {
-	for k, v := range progressData {
-		if v == str {
-			return k
-		}
-	}
-	return 0
 }

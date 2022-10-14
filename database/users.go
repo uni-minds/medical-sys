@@ -14,29 +14,6 @@ import (
 	"time"
 )
 
-func (*UserInfo) TableName() string {
-	return global.DefaultDatabaseUserTable
-}
-
-type UserInfo struct {
-	Uid            int    `gorose:"uid"`
-	Username       string `gorose:"username"`
-	Password       string `gorose:"password"`
-	PasswordSalt   string `gorose:"passwordsalt"`
-	Email          string `gorose:"email"`
-	Realname       string `gorose:"realname"`
-	RegisterTime   string `gorose:"registertime"`
-	Activate       int    `gorose:"activate"`
-	ExpireTime     string `gorose:"expiretime"`
-	LoginCount     int    `gorose:"logincount"`
-	LoginTime      string `gorose:"logintime"`
-	LoginFailCount int    `gorose:"loginfailcount"`
-	LastGroupId    int    `gorose:"lastGroupId"`
-	LastPageIndex  int    `gorose:"lastPageIndex"`
-	LastToken      string `gorose:"lastToken"`
-	Memo           string `gorose:"memo"`
-}
-
 type UserPermissions struct {
 	ListMedia     bool
 	ManageMedia   bool
@@ -70,10 +47,10 @@ func initUserDB() {
 
 	_, err := DB().Execute(dbSql)
 	if err != nil {
-		log("e", err.Error())
+		log.Error(err.Error())
 	}
 }
-func UserCreate(u UserInfo) (uid int, err error) {
+func UserCreate(u DbStructUser) (uid int, err error) {
 	ut, err := UserGet(u.Username)
 	if err != nil {
 		u.Uid = 0
@@ -86,7 +63,7 @@ func UserCreate(u UserInfo) (uid int, err error) {
 	return ut.Uid, errors.New(global.EUserAlreadyExisted)
 }
 
-func UserGet(i interface{}) (u UserInfo, err error) {
+func UserGet(i interface{}) (u DbStructUser, err error) {
 	switch i.(type) {
 	case string:
 		err = DB().Table(&u).Where("username", "=", strings.ToLower(i.(string))).Select()
@@ -102,11 +79,11 @@ func UserGet(i interface{}) (u UserInfo, err error) {
 	}
 	return
 }
-func UserGetManual(title, content string) (u UserInfo, err error) {
+func UserGetManual(title, content string) (u DbStructUser, err error) {
 	err = DB().Table(&u).Where(title, "=", content).Select()
 	return u, err
 }
-func UserGetAll() (ul []UserInfo, err error) {
+func UserGetAll() (ul []DbStructUser, err error) {
 	err = DB().Table(&ul).OrderBy("uid").Select()
 	return
 }
@@ -157,7 +134,7 @@ func UserTokenCheck(uid int, token string) bool {
 func UserGetLastStatus(uid int) (lastGroupId, lastPageIndex int) {
 	ui, err := UserGet(uid)
 	if err != nil {
-		log("e", err.Error())
+		log.Error(err.Error())
 	}
 	return ui.LastGroupId, ui.LastPageIndex
 }
@@ -168,7 +145,7 @@ func UserSetLastStatus(uid, lastGroupId, lastPageIndex int) error {
 
 func UserDelete(uid int) (err error) {
 	if uid <= 1 {
-		log("e", "remove uid failed: uid=", uid)
+		log.Error(fmt.Sprintf("remove uid failed: uid=%d", uid))
 		return errors.New(global.EUserForbidden)
 	}
 	_, err = DB().Table(global.DefaultDatabaseUserTable).Where("uid", "=", uid).Delete()

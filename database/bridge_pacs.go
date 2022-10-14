@@ -1,28 +1,31 @@
 package database
 
 import (
-	"gitee.com/uni-minds/bridge_pacs"
+	"gitee.com/uni-minds/bridge-pacs/pacs_server"
 	"gitee.com/uni-minds/medical-sys/global"
 )
 
-var pacsPort bridge_pacs.DbManager
-var pacsServer bridge_pacs.PacsServer
+var pacsManager *pacs_server.PacsManager
+var pacsServer *pacs_server.PacsServer
 
-func BridgePacsInit() (err error) {
-	app := global.GetAppSettings()
-	pacsPort.Init(app.DbFilePacs)
+func BridgePacsInit() {
+	dbfile, err := global.GetDbFile("pacs")
+	if err != nil {
+		log.Error(err.Error())
+	}
+	pacsManager, _ = pacs_server.NewPacsDbManager(dbfile, global.FlagGetVerbose())
+
 	serverName := "pacs_1"
-	log("i", "use pacs db:", app.DbFilePacs)
-	if pacsServer, err = pacsPort.GetServer(serverName); err != nil {
+	log.Println("pacs db ->", dbfile, serverName)
+	if pacsServer, err = pacsManager.GetServer(serverName); err != nil {
 		panic(err.Error())
 	}
-	return err
 }
 
-func BridgeGetPacsDatabaseHandler() bridge_pacs.DbManager {
-	return pacsPort
+func BridgeGetPacsDatabaseHandler() *pacs_server.PacsManager {
+	return pacsManager
 }
 
-func BridgeGetPacsServerHandler() bridge_pacs.PacsServer {
+func BridgeGetPacsServerHandler() *pacs_server.PacsServer {
 	return pacsServer
 }

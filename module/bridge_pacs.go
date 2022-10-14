@@ -1,12 +1,12 @@
 package module
 
 import (
-	"gitee.com/uni-minds/bridge_pacs"
-	"gitee.com/uni-minds/bridge_pacs/global"
+	"gitee.com/uni-minds/bridge-pacs/global"
+	"gitee.com/uni-minds/bridge-pacs/pacs_server"
 	"gitee.com/uni-minds/medical-sys/database"
 )
 
-var pi bridge_pacs.PacsServer
+var pi *pacs_server.PacsServer
 
 func PacsGetInstanceThumb(id string) (bs []byte, err error) {
 	pi = database.BridgeGetPacsServerHandler()
@@ -19,6 +19,8 @@ func PacsGetInstanceMedia(id string, targetType string) (bs []byte, mediaType st
 	switch targetType {
 	case "image":
 		return pi.InstanceMediaGet(id, "image")
+	case "mp4":
+		return pi.InstanceMediaGet(id, "mp4")
 	default:
 		return pi.InstanceMediaGet(id, "ogv")
 	}
@@ -36,7 +38,7 @@ func PacsGetSeriesInfo(id string) (info global.SeriesInfo, err error) {
 
 func PacsSetSeriesMemo(id, memo string) error {
 	pi = database.BridgeGetPacsServerHandler()
-	return pi.UpdateSeriesLabelMemo(id, memo)
+	return pi.SeriesUpdateLabelMemo(id, memo)
 }
 
 func PacsGetSeriesMemo(id string) (memo string, err error) {

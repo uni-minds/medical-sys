@@ -7,11 +7,12 @@
 package global
 
 import (
-	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"gitee.com/uni-minds/utils/tools"
+	"io"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 )
 
@@ -35,8 +36,10 @@ type LabelTool struct {
 	GOpen  bool   `json:"gopen"`  //默认展开
 }
 
-func DefaultUltrasonicViewData(view string) (d []LabelTool) {
+func DefaultViewData(view string) (d []LabelTool) {
+
 	view = strings.ToLower(view)
+	// 添加分组及质量标签
 	d = []LabelTool{
 		{Type: "group", Id: "t", Name: "切面标签", Group: "t", Color: "palevioletred", GRadio: true, GOpen: true},
 		{Type: "group", Id: "c", Name: "通用标签", Group: "c", Color: "palevioletred", GRadio: false, GOpen: false},
@@ -49,6 +52,8 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 		{Type: "radio", Group: "q", Domain: "global", Value: "2", Id: "FQ2", Name: "差"},
 		{Type: "radio", Group: "q", Domain: "global", Value: "1", Id: "FQ1", Name: "不可评估"},
 	}
+
+	// 添加时间标签
 	switch strings.ToLower(view) {
 	case "3v", "3vt":
 		d = append(d, []LabelTool{
@@ -65,6 +70,7 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 		}...)
 	}
 
+	// 添加通用标签
 	switch strings.ToLower(view) {
 	case "4ap", "aa", "4cv":
 		d = append(d, []LabelTool{
@@ -179,8 +185,6 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 			{Type: "com", Group: "s", Color: "#FFF", Id: "ERDA", Name: "右位动脉导管"},
 		}...)
 	}
-
-	//log("t", "crf table:", d)
 
 	return d
 }
@@ -347,53 +351,51 @@ func DefaultUltrasonicLabel(name string) LabelTool {
 	return lt
 }
 
-func LabelWriteCrf(filename, view string) error {
-	data := DefaultUltrasonicViewData(view)
+func LoadCrfViewData(view string) (d []LabelTool) {
+	view = strings.ToLower(view)
 
-	if data != nil {
-		f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, os.ModePerm)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
-		w := csv.NewWriter(f)
-		var header = []string{"id", "name", "group", "type", "domain", "value", "color", "gopen", "gradio"}
-		w.Write(header)
-		for _, d := range data {
-			line := []string{d.Id, d.Name, d.Group, d.Type, d.Domain, d.Value, strings.ToUpper(d.Color)}
-			if d.GOpen {
-				line = append(line, "1")
-			} else {
-				line = append(line, "")
-			}
-			if d.GRadio {
-				line = append(line, "1")
-			} else {
-				line = append(line, "")
-			}
-			w.Write(line)
-		}
-		w.Flush()
+	if view == "" {
+		log("w", "empty view")
+		return
 	}
-	return nil
-}
 
-func LabelCrfFromCsv(view string) error {
-	csvRoot := path.Join(GetAppSettings().PathApp, "database", "crf")
-	err := filepath.Walk(csvRoot, func(path string, f os.FileInfo, err error) error {
-		if f == nil {
-			return err
-		}
-		if f.IsDir() {
-			return nil
-		}
-		filename := filepath.Base(path)
-		filename = strings.Split(filename, ".")[0]
-		info := strings.Split(filename, "_")
-		fmt.Println(info)
-		return nil
-	})
-	return err
+	crf_root := path.Join(GetPaths().Application, "crfs")
+	if err := tools.EnsureDir(crf_root); err != nil {
+		log("e", err.Error())
+	}
 
+	crf_file := path.Join(crf_root, fmt.Sprintf("%s.json", view))
+
+	if _, err := os.Stat(crf_file); err != nil {
+		// 不存在文件
+		d = DefaultViewData(view)
+		if fp, err := os.OpenFile(crf_file, os.O_CREATE|os.O_RDWR, os.ModePerm); err != nil {
+			log("e", "create crf file", err.Error())
+		} else {
+			if bs, err := json.Marshal(d); err != nil {
+				log("e", "create json", err.Error())
+			} else {
+				fp.Write(bs)
+				fp.Close()
+				log("d", "write crf json:", crf_file)
+			}
+		}
+
+		return d
+
+	} else {
+		// 存在crf配置
+		if fp, err := os.Open(crf_file); err != nil {
+			log("e", "open crf file:", crf_file)
+
+		} else {
+			if bs, err := io.ReadAll(fp); err != nil {
+				log("e", "read crf file:", crf_file)
+			} else {
+				fp.Close()
+				json.Unmarshal(bs, &d)
+			}
+		}
+		return d
+	}
 }

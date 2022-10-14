@@ -13,17 +13,25 @@ import (
 	"strconv"
 )
 
+// GroupGet
+//
+// ?action=getlist [&type=*]
+// ?action=getlistfull [&type=*]
+// ?action=getname&gid=
 func GroupGet(ctx *gin.Context) {
-	valid, uid := CookieValidUid(ctx)
-	if !valid {
-		ctx.JSON(http.StatusOK, FailReturn(400, ETokenInvalid))
+	uid := -1
+	if uidi, exists := ctx.Get("uid"); !exists {
 		return
+	} else {
+		uid = uidi.(int)
 	}
 
 	action := ctx.Query("action")
 	switch action {
 	case "getlist":
-		gids := module.UserGetGroups(uid, ctx.Query("grouptype"))
+		groupType := ctx.Query("type")
+		gids := module.UserGetGroups(uid, groupType)
+
 		for i, gid := range gids {
 			// remove administrators group
 			if gid == 1 {
@@ -38,16 +46,8 @@ func GroupGet(ctx *gin.Context) {
 		}
 
 	case "getlistfull":
-		groupType := ctx.Query("grouptype")
-		switch groupType {
-		case "pacs_studies_id":
-			groupType = "screen_dicom"
-		case "":
-			groupType = "label"
-		case "all":
-			groupType = "*"
-		}
 
+		groupType := ctx.Query("type")
 		gids := module.UserGetGroups(uid, groupType)
 
 		type ginfo struct {

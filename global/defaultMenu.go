@@ -22,42 +22,47 @@ func DefaultMenuData() []MenuStruct {
 		Icon:       "fas fa-th",
 	})
 	menudata = append(menudata, MenuStruct{
-		Name:       "影像检索",
+		Name:       "影像筛查",
 		Controller: "#",
 		Icon:       "fas fa-search",
 		Child: []MenuStruct{
 			{
-				Id:         "us-screen",
-				Name:       "超声 - 挑图",
+				Id:         "screen-us",
+				Name:       "超声挑图",
 				Icon:       "fas fa-image",
 				Controller: "/ui/screen?type=us",
 			}, {
-				Id:         "us-medialist",
-				Name:       "超声 - 标注",
-				Icon:       "fas fa-image",
-				Controller: "/ui/medialist?type=us",
-			}, {
-				Id:         "ct-medialist",
-				Name:       "CT 影像检索",
-				Controller: "/ui/medialist?type=ct",
+				Id:         "screen-ct",
+				Name:       "CT",
+				Controller: "/ui/screen?type=ct",
 				Icon:       "far fa-images",
+			}, {
+				Id:         "screen-stream",
+				Name:       "流媒体",
+				Icon:       "fas fa-video",
+				Controller: "/ui/screen?type=stream",
 			},
 		},
 	})
 	menudata = append(menudata, MenuStruct{
-		Name:       "标注系统",
+		Name:       "标注检索",
 		Controller: "#",
 		Icon:       "fas fa-edit",
 		Child: []MenuStruct{
 			{
-				//	Id:         "cta-label",
-				//	Name:       "CTA 多专家标注",
-				//	Controller: "http://172.16.1.13/v/",
-				//	Icon:       "fas fa-file-medical-alt",
-				//}, {
-				Id:         "us-label",
-				Name:       "超声影像标注",
+				Id:         "label-us",
+				Name:       "超声标注",
 				Controller: "/ui/medialist?type=us",
+				Icon:       "fas fa-notes-medical",
+			}, {
+				Id:         "label-ct",
+				Name:       "CT标注",
+				Controller: "/ui/medialist?type=ct",
+				Icon:       "fas fa-notes-medical",
+			}, {
+				Id:         "label-stream",
+				Name:       "流媒体",
+				Controller: "/ui/medialist?type=steam",
 				Icon:       "fas fa-notes-medical",
 			},
 		},
@@ -120,35 +125,17 @@ func DefaultMenuData() []MenuStruct {
 				Icon:       "fas fa-layer-group",
 				Controller: "/ui/manage/user",
 			},
-			//{
-			//	Id:         "manage-group",
-			//	Name:       "群组管理",
-			//	Icon:       "fas fa-layer-group",
-			//	Controller: "/ui/manage/group",
-			//},
-			//{
-			//	Id:         "manage-media",
-			//	Name:       "媒体管理",
-			//	Icon:       "fas fa-layer-group",
-			//	Controller: "/ui/manage/media",
-			//},
 			{
 				Id:         "management-upload-dicom",
 				Name:       "上传-DICOM",
 				Icon:       "fas fa-layer-group",
 				Controller: "/ui/manage/upload?type=dicom",
 			},
-			//{
-			//	Id:         "management-upload-us",
-			//	Name:       "上传-超声",
-			//	Icon:       "fas fa-layer-group",
-			//	Controller: "/ui/manage/upload?type=us",
-			//},
 		},
 	})
 	menudata = append(menudata, MenuStruct{
-		Id:         "H5",
-		Name:       "H5",
+		Id:         "algo-exec",
+		Name:       "算法投放",
 		Controller: "/mobi",
 		Icon:       "fab fa-html5",
 	})

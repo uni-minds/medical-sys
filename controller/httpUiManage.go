@@ -8,7 +8,7 @@ package controller
 
 import (
 	"fmt"
-	"gitee.com/uni-minds/medical-sys/tools"
+	"gitee.com/uni-minds/utils/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"

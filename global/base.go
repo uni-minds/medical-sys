@@ -7,28 +7,37 @@
 package global
 
 import (
+	"fmt"
 	"gitee.com/uni-minds/medical-sys/logger"
-	"gitee.com/uni-minds/medical-sys/tools"
+	"gitee.com/uni-minds/utils/tools"
 )
 
 const tag = "GLOB"
 
-var debugMode bool
+var flagDebug, flagVerbose bool
 
 func log(level string, message ...interface{}) {
-	msg := tools.ExpandInterface(message)
-	logger.Write(tag, level, msg)
+	logger.Write(tag, level, tools.InterfaceExpand(message))
 }
 
-func DebugSetFlag(f bool) {
+func FlagSetDebug(f bool) {
 	if f {
-		log("w", "Debug Mode")
-		debugMode = true
-	} else {
-		debugMode = false
+		fmt.Println("Debug On")
 	}
+	flagDebug = f
 }
 
-func DebugGetFlag() bool {
-	return debugMode
+func FlagGetDebug() bool {
+	return flagDebug
+}
+
+func FlagSetVerbose(f bool) {
+	if f {
+		fmt.Println("Verbose On")
+	}
+	flagVerbose = f
+}
+
+func FlagGetVerbose() bool {
+	return flagVerbose
 }

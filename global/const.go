@@ -10,7 +10,6 @@ const (
 	DefaultDatabaseUserTable  = "users"
 	DefaultDatabaseGroupTable = "groups"
 	DefaultDatabaseMediaTable = "media"
-	//DefaultDatabaseLabelTable     = "label"
 	DefaultDatabaseLabelTable = "label"
 	DefaultDatabasePacsTable  = "pacs"
 
@@ -47,6 +46,10 @@ const (
 
 	MediaTypeUltrasonicImage = "us_image"
 	MediaTypeUltrasonicVideo = "us_video"
+	MediaTypeM3u8            = "video.m3u8"
+
+	CoworkTypeSingle = "single"
+	CoworkTypeMulti  = "multi"
 
 	LabelTypeAuthor = "label_author"
 	LabelTypeReview = "label_review"

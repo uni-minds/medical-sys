@@ -8,73 +8,43 @@ package controller
 
 import (
 	"fmt"
-	"gitee.com/uni-minds/medical-sys/module"
+	"gitee.com/uni-minds/medical-sys/global"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 func UiHomeGet(ctx *gin.Context) {
-	uid := -1
-	if value, exists := ctx.Get("uid"); !exists {
-		return
-	} else {
-		uid = value.(int)
+	js := "/dist/js/home.js"
+	if global.FlagGetDebug() {
+		js = fmt.Sprintf("%s?rnd=%s", js, getRandomString())
 	}
-
-	bgContent := fmt.Sprintf("您好，%s老师。请单击左侧菜单栏选择相应的功能。", module.UserGetRealname(uid))
-
 	ctx.HTML(http.StatusOK, "index.html", gin.H{
-		"title":      "首页 ｜ Medi-Sys",
-		"page_id":    "index",
-		"bg_content": bgContent,
+		"title":          "首页 ｜ Medi-Sys",
+		"custom_scripts": js,
 	})
 }
 
-func UiMediaListGet(ctx *gin.Context) {
-	tp := ctx.Query("type")
-	switch tp {
-	case "us":
-		customScript := fmt.Sprintf("/webapp/medialist/us/medialist.js?rnd=%s", getRandomString())
-		ctx.HTML(http.StatusOK, "medialist_us.html", gin.H{
-			"title":          "超声影像检索 | Medi-sys",
-			"page_id":        "us-medialist",
-			"custom_scripts": customScript,
-		})
-		break
-
-	case "ct":
-		customScript := fmt.Sprintf("/webapp/medialist/ct/medialist.js?rnd=%s", getRandomString())
-		ctx.HTML(http.StatusOK, "medialist_ct.html", gin.H{
-			"title":          "CT影像检索 | Medi-sys",
-			"page_id":        "ct-medialist",
-			"custom_scripts": customScript,
-		})
-		break
+func UiScreenSeriesGet(ctx *gin.Context) {
+	js := "/dist/js/pacs_us_tool.js"
+	if global.FlagGetDebug() {
+		js = fmt.Sprintf("%s?rnd=%s", js, getRandomString())
 	}
-	return
+	ctx.HTML(http.StatusOK, "index.html", gin.H{
+		"title":          "病例筛查 | Medi-sys",
+		"custom_scripts": js,
+	})
 }
 
-func UiMediaScreenGet(ctx *gin.Context) {
-	tp := ctx.Query("type")
-	switch tp {
-	case "us":
-		switch ctx.Query("action") {
-		case "screen":
-			customScript := fmt.Sprintf("/webapp/medialist/us/us_pacs_screen_tool.js?rnd=%s", getRandomString())
-			ctx.HTML(http.StatusOK, "mediascreen_us.html", gin.H{
-				"title":          "超声挑图 | Medi-sys",
-				"page_id":        "us-screen",
-				"custom_scripts": customScript,
-			})
-
-		default:
-			customScript := fmt.Sprintf("/webapp/medialist/us/us_pacs_screen_list.js?rnd=%s", getRandomString())
-			ctx.HTML(http.StatusOK, "mediascreen_us.html", gin.H{
-				"title":          "超声挑图 | Medi-sys",
-				"page_id":        "us-screen",
-				"custom_scripts": customScript,
-			})
-		}
+func UiLabeltoolGet(ctx *gin.Context) {
+	js := "/dist/js/labelsys_core.js"
+	if global.FlagGetDebug() {
+		js = fmt.Sprintf("%s?rnd=%s", js, getRandomString())
 	}
-	return
+
+	switch ctx.Param("usertype") {
+	case "author", "review":
+		ctx.HTML(http.StatusOK, "labelsys.html", gin.H{
+			"custom_scripts": js,
+		})
+	}
 }

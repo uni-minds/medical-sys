@@ -32,7 +32,7 @@ func RawDataGet(ctx *gin.Context) {
 	case "getviewjson":
 		view := ctx.Query("view")
 		if view != "" {
-			ctx.JSON(http.StatusOK, SuccessReturn(global.DefaultUltrasonicViewData(view)))
+			ctx.JSON(http.StatusOK, SuccessReturn(global.LoadCrfViewData(view)))
 		} else {
 			ctx.JSON(http.StatusOK, FailReturn(400, "N/A"))
 		}

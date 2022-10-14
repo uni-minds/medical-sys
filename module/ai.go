@@ -10,7 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"gitee.com/uni-minds/medical-sys/global"
-	"gitee.com/uni-minds/medical-sys/tools"
+	"gitee.com/uni-minds/utils/tools"
 	"io/ioutil"
 	"os"
 	"path"
@@ -36,13 +36,13 @@ func RunAlgo(algo, params string) (aid string, err error) {
 
 func algoCctaGetFeatures() (aid string, err error) {
 	aid = tools.RandString0f(32)
-	log("w", "exec: ccta extra")
+	log.Println("w", "exec: ccta extra")
 	return aid, nil
 }
 
 func algoCtaGetFeatures() (aid string, err error) {
 	aid = tools.RandString0f(32)
-	log("w", "exec: cta extra")
+	log.Println("w", "exec: cta extra")
 	return aid, nil
 }
 
@@ -51,15 +51,15 @@ func algoCtaGetFeatures() (aid string, err error) {
 func AlgoCctaGetFeatureResult(aid, part string) (result map[string]string) {
 	result = make(map[string]string)
 
-	log("i", aid, part)
-	fileDir := path.Join(global.GetAppSettings().PathApp, "ai_data/ccta/result", aid, "json")
+	log.Println("i", aid, part)
+	fileDir := path.Join(global.GetPaths().Application, "ai_data/ccta/result", aid, "json")
 	if part != "" {
 		file := path.Join(fileDir, fmt.Sprintf("%s.json", strings.ToLower(part)))
-		log("i", "get part", part, "from file:", file)
+		log.Println("i", "get part", part, "from file:", file)
 		if fp, err := os.OpenFile(file, os.O_RDONLY, os.ModePerm); err != nil {
-			log("e", err.Error())
+			log.Println("e", err.Error())
 		} else if bs, err := ioutil.ReadAll(fp); err != nil {
-			log("e", err.Error())
+			log.Println("e", err.Error())
 		} else {
 			result[part] = string(bs)
 			return result
@@ -77,21 +77,21 @@ func AlgoCctaGetFeatureResult(aid, part string) (result map[string]string) {
 		})
 
 		if err != nil {
-			log("e", err.Error())
+			log.Println("e", err.Error())
 			return nil
 		}
 
 		for _, file := range files {
 			if fp, err := os.OpenFile(file, os.O_RDONLY, os.ModePerm); err != nil {
-				log("e", err.Error())
+				log.Println("e", err.Error())
 			} else if bs, err := ioutil.ReadAll(fp); err != nil {
-				log("e", err.Error())
+				log.Println("e", err.Error())
 			} else {
 				filename := path.Base(file)
 				base := strings.TrimSuffix(filename, path.Ext(filename))
 				_, ok := result[base]
 				if ok {
-					log("e", "result has the same index", base)
+					log.Println("e", "result has the same index", base)
 				} else {
 					result[base] = string(bs)
 				}
