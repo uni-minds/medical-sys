@@ -4,14 +4,6 @@
  * File: label.go
  */
 
-/**
- * @Author: Liu Xiangyu
- * @Description:
- * @File:  labels
- * @Version: 1.0.0
- * @Date: 2020/4/14 23:50
- */
-
 package database
 
 import (

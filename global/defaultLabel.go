@@ -162,7 +162,7 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 			DefaultUltrasonicLabel("真肋骨1"), DefaultUltrasonicLabel("真肋骨2"), DefaultUltrasonicLabel("DAO"),
 			DefaultUltrasonicLabel("AO"), DefaultUltrasonicLabel("PA"),
 			DefaultUltrasonicLabel("T"), DefaultUltrasonicLabel("右上腔静脉"), DefaultUltrasonicLabel("无名静脉"),
-			DefaultUltrasonicLabel("奇静脉"), DefaultUltrasonicLabel("Thymus")}...)
+			DefaultUltrasonicLabel("奇静脉"), DefaultUltrasonicLabel("Thymus"), DefaultUltrasonicLabel("SVC")}...)
 		//DefaultUltrasonicLabel("SVC"),
 
 		d = append(d, []LabelTool{

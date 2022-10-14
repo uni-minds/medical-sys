@@ -115,3 +115,34 @@ $(function() {
     menu.init()
     cr.init()
 });
+
+function analysisURL(href) {
+    let url ={};
+    let data = href.split('?')[1].split('&');
+    data.forEach(e=>{
+        let p=e.split('=');
+        url[p[0]]=p[1];
+    });
+    return url
+}
+
+function sidebar(action) {
+    switch (action) {
+        case "open":
+        case true:
+        case 2:
+            $(document.body).addClass("sidebar-mini").removeClass("sidebar-collapse")
+            break
+
+        case "close":
+        case false:
+        case 1:
+            $(document.body).addClass("sidebar-mini sidebar-collapse")
+            break
+
+        case "hide":
+        case 0:
+            $(document.body).removeClass("sidebar-mini").addClass("sidebar-collapse")
+            break
+    }
+}

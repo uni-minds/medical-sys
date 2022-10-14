@@ -76,25 +76,24 @@ func clientRecycle(client *http.Client) {
 	}
 }
 
-func HttpGet(url string) (data ConnectData, rs []byte, err error) {
+func HttpGet(url string) (data ConnectData, bs []byte, err error) {
 	client := clientGet()
 	defer clientRecycle(client)
 
 	if resp, err := client.Get(url); err != nil {
 		return data, nil, err
-	} else if rs, err = ioutil.ReadAll(resp.Body); err != nil {
+	} else if bs, err = ioutil.ReadAll(resp.Body); err != nil {
 		return data, nil, err
 	} else if err = resp.Body.Close(); err != nil {
-		return data, rs, err
+		return data, bs, err
 	} else {
-		if err = json.Unmarshal(rs, &data); err != nil {
-			log("t", "http get: not a standard response")
-		}
-		return data, rs, nil
+		json.Unmarshal(bs, &data)
+		return data, bs, nil
 	}
 }
 
 func HttpPost(url string, data interface{}, contentType string) (rdata ConnectData, bs []byte, err error) {
+	log("t", "post ->", url)
 	jsonStr, _ := json.Marshal(data)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	if err != nil {
@@ -115,6 +114,7 @@ func HttpPost(url string, data interface{}, contentType string) (rdata ConnectDa
 	if bs, err = ioutil.ReadAll(resp.Body); err != nil {
 		return rdata, bs, err
 	} else {
+		log("t", "post <-", string(bs))
 		if err = json.Unmarshal(bs, &rdata); err != nil {
 			log("t", "http post: not a standard response")
 		}

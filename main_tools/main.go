@@ -853,7 +853,7 @@ func printMediasPage(mis []database.MediaInfo, termWidth int) {
 	title := tools.LineBuilder(maxLineChars+2, "-")
 	fmt.Println("")
 	fmt.Println(title)
-	fmt.Printf("%s |\n", runewidth.FillRight("|  Mid  | View | Path", maxLineChars))
+	fmt.Printf("%s |\n", runewidth.FillRight("|  Mid  | View | PathCache", maxLineChars))
 	fmt.Println(title)
 
 	for _, line := range lines {

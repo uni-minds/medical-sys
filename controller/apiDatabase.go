@@ -46,7 +46,6 @@ func PacsSearchProxy(ctx *gin.Context) {
 	}
 	u := addr.String()
 
-	log("i", "post->", u)
 	resp, _, err := tools.HttpPost(u, nil, "json")
 	//log("i",resp)
 	if resp.Code == 200 {

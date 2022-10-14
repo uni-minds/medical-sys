@@ -7,6 +7,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 
 func CookieWrite(ctx *gin.Context, key string, value string, age int) {
 	host := strings.Split(ctx.Request.Host, ":")
+	fmt.Println("Host:", host)
 	ctx.SetCookie(key, value, age, "/", host[0], false, true)
 }
 

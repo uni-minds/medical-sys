@@ -45,6 +45,7 @@ func init() {
 	initMediaDB()
 	initGroupDB()
 	initLabelDB()
+	initPacsDB()
 }
 
 func DB() gorose.IOrm {

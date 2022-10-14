@@ -48,43 +48,57 @@ var pacsResponseData []map[string]DicomItem
 var pacsDbs []NodePacsInfo
 
 func UpdatePacsNodes() {
+	var list []global.NodeInfo
+	var list1 global.NodeInfo
+	var resp tools.ConnectData
+	var err error
+
 	u := global.GetEdaLocalUrl()
 	u.Path = "/api/v1/node/list"
-
-	if resp, _, err := tools.HttpGet(u.String()); err != nil {
+	if resp, _, err = tools.HttpGet(u.String()); err != nil {
 		log("e", err.Error())
 	} else if resp.Code != 200 {
 		log("e", resp.Message)
-	} else {
-		var list []global.NodeInfo
-		bs, _ := json.Marshal(resp.Data)
-		err := json.Unmarshal(bs, &list)
-		if err != nil {
-			log("e", "get nodelist:", err.Error())
-		} else {
-			u.Path = "/api/v1/pacs"
-			for _, node := range list {
-				u.Host = fmt.Sprintf("%s:80", node.IP)
+	}
+	bs, _ := json.Marshal(resp.Data)
+	if err = json.Unmarshal(bs, &list); err != nil {
+		log("e", err.Error())
+	}
 
-				log("i", "load dbs on eda", u.String())
-				if resp, _, err := tools.HttpGet(u.String()); err != nil {
-					log("e", err.Error())
-				} else {
-					var dbs []string
-					bs, _ := json.Marshal(resp.Data)
-					err := json.Unmarshal(bs, &dbs)
-					if err != nil {
-						log("e", err.Error())
-					} else {
-						for _, db := range dbs {
-							NodePacsSetAddr(node.Name, db, url.URL{
-								Scheme:   "http",
-								Host:     u.Host,
-								Path:     fmt.Sprintf("/api/v1/pacs/%s", db),
-								RawQuery: u.RawQuery,
-							})
-						}
-					}
+	u.Path = "/api/v1/node/status"
+	if resp, _, err = tools.HttpGet(u.String()); err != nil {
+		log("e", err.Error())
+	} else if resp.Code != 200 {
+		log("e", resp.Message)
+	}
+	bs, _ = json.Marshal(resp.Data)
+	if err = json.Unmarshal(bs, &list1); err != nil {
+		log("e", err.Error())
+	}
+
+	list = append(list, list1)
+
+	u.Path = "/api/v1/pacs"
+	for _, node := range list {
+		u.Host = fmt.Sprintf("%s:80", node.IP)
+
+		log("i", "load dbs on eda", u.String())
+		if resp, _, err := tools.HttpGet(u.String()); err != nil {
+			log("e", err.Error())
+		} else {
+			var dbs []string
+			bs, _ := json.Marshal(resp.Data)
+			err := json.Unmarshal(bs, &dbs)
+			if err != nil {
+				log("e", err.Error())
+			} else {
+				for _, db := range dbs {
+					NodePacsSetAddr(node.Name, db, url.URL{
+						Scheme:   "http",
+						Host:     u.Host,
+						Path:     fmt.Sprintf("/api/v1/pacs/%s", db),
+						RawQuery: u.RawQuery,
+					})
 				}
 			}
 		}

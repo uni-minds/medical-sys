@@ -41,6 +41,7 @@ func Router() {
 		router.Static("/pages", path.Join(config.SystemAppPath, "web/pages"))
 		router.Static("/application", config.SystemAppPath)
 		router.Static("/plugins", path.Join(config.SystemAppPath, "web/plugins"))
+		router.Static("/plugins-custom", path.Join(config.SystemAppPath, "web/plugins-custom"))
 		router.Static("/dist", path.Join(config.SystemAppPath, "web/dist"))
 		router.Static("/webapp", path.Join(config.SystemAppPath, "web/webapp"))
 		router.StaticFile("/favicon.ico", path.Join(config.SystemAppPath, "web/favicon.ico"))
@@ -59,6 +60,7 @@ func Router() {
 		rUi.GET("/home", controller.UiHomeGet)
 		rUi.GET("/manage/:class", controller.UiManageGetHandler)
 		rUi.GET("/medialist", controller.UiMedialistGet)
+		rUi.GET("/screen", controller.UiMediaScreenGet)
 		rUi.GET("/labeltool", controller.UiLabeltoolGet)
 		rUi.GET("/import", controller.UiImportMedia)
 		rUi.GET("/analysis", controller.UiAnalysisGet)
@@ -87,6 +89,10 @@ func Router() {
 		apiV1.GET("label", controller.LabelGet)
 		apiV1.POST("label", controller.LabelPost)
 		apiV1.DELETE("label", controller.LabelDel)
+
+		apiV1.GET("screen", controller.ScreenGet)
+		apiV1.POST("screen", controller.ScreenPost)
+		apiV1.DELETE("screen", controller.ScreenDelete)
 
 		apiV1.GET("algo", controller.AlgoGet)
 		apiV1.POST("algo", controller.AlgoPost)
@@ -147,6 +153,8 @@ func checkUserAuthorized(ctx *gin.Context) {
 		log("w", "Debug ignore user check")
 		ctx.Next()
 	} else if valid, _ := controller.CookieValidUid(ctx); !valid {
+		//ctx.JSON(http.StatusNotAcceptable,"user invalid")
+		//ctx.Abort()
 		ctx.Redirect(http.StatusFound, "/")
 	}
 }

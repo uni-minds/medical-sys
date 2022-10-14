@@ -1,4 +1,4 @@
-COMPILE_VER=2.1.2
+COMPILE_VER=2.2.0
 
 GO := /usr/local/go/bin/go
 GOBUILD = ${GO} build

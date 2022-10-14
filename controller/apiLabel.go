@@ -156,7 +156,7 @@ func LabelPost(ctx *gin.Context) {
 				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
 			} else {
 				fmt.Println("Author json import:")
-				fmt.Println(ldata.Data)
+				//fmt.Println(ldata.Data)
 				fmt.Println("---")
 				ctx.JSON(http.StatusOK, SuccessReturn(fmt.Sprintf("同步成功 @ %s", time.Now().Format(global.TimeFormat))))
 			}

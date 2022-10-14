@@ -68,15 +68,28 @@ func UserGetRealname(i interface{}) string {
 	}
 	return u.Realname
 }
-func UserGetGroups(uid int) (gids []int) {
+func UserGetGroups(uid int, groupType string) (gids []int) {
 	gids = make([]int, 0)
+	groupType = strings.ToLower(groupType)
 	if UserIsAdmin(uid) {
 		gl, _ := database.GroupGetAll()
 		for _, v := range gl {
-			gids = append(gids, v.Gid)
+			if groupType == "" || strings.ToLower(v.GroupType) == groupType {
+				gids = append(gids, v.Gid)
+			}
 		}
 	} else {
-		gids, _ = database.UserGetGroups(uid)
+		gids1, _ := database.UserGetGroups(uid)
+		if groupType == "" {
+			gids = gids1
+		} else {
+			for _, gid := range gids1 {
+				gi, _ := database.GroupGet(gid)
+				if gi.GroupType == groupType {
+					gids = append(gids, gi.Gid)
+				}
+			}
+		}
 	}
 	return gids
 }
@@ -214,7 +227,7 @@ func userGetMediaInfo(uid int, i interface{}) (mi database.MediaInfo, err error)
 
 	permissionViewMedia := false
 
-	gids := UserGetGroups(uid)
+	gids := UserGetGroups(uid, "")
 	for _, gid := range gids {
 		mids := GroupGetMedia(gid)
 		for _, mid := range mids {

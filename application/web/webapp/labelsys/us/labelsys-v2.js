@@ -6,6 +6,9 @@
  */
 
 // region UI and Timer
+
+console.log("tag",1)
+
 /**
  * 用户交互类
  */
@@ -412,7 +415,6 @@ class CanvasContainer extends BasicContainer {
         this.init()
         this.mode = this.def.ModeDisable
         this.mainObj.css("z-index", 2).addClass("lsWorkspaceOverlay").css("left", 0).css("top", 0)
-        console.log("this(cc).mainObj = ", this.mainObj)
     }
 
     init() {
@@ -835,6 +837,7 @@ class CanvasContainer extends BasicContainer {
  */
 class BasicPart {
     constructor(id, width, height, container) {
+        console.log(`new basic, ${id}, ${container}`)
         this.id = id
         this.mainObj = {}
         this.container = container
@@ -1871,6 +1874,7 @@ class CanvasPanel extends BasicPanel {
     pageLoad(page) {
         this.pageClear()
         let d = ldata.getPage(page)
+        console.log(`clear and load page=${page}, data=${d}`)
         if (d) {
             for (const id in d.clabels) {
                 this.setButton(id, "on")
@@ -1889,7 +1893,7 @@ class CanvasPanel extends BasicPanel {
                     let crf = ldata.crfId(id)
                     console.log(`cp page clear ${id}`, crf)
                     if (crf.domain !== "global") {
-                        this.setButton(id, "off")
+                        this.setButton(id, "off",null)
                     }
             }
         })
@@ -2290,6 +2294,7 @@ class LabelData {
     }
 
     crfId(id) {
+        // console.log("CRF",this.data.crfs)
         return this.data.crfs.get(id)
     }
 
@@ -2441,6 +2446,7 @@ function LabelToolSystemExit() {
 }
 
 // 基本结构
+// urlData.type .media .crf .action
 const urlData = analysisURL(window.location.href);
 const xmlns = "http://www.w3.org/2000/svg";
 const ldata = new LabelData()

@@ -12,6 +12,7 @@ const (
 	DefaultDatabaseMediaTable = "media"
 	//DefaultDatabaseLabelTable     = "label"
 	DefaultDatabaseLabelTable = "label"
+	DefaultDatabasePacsTable  = "pacs"
 
 	DefaultAdminGroup    = "administrators"
 	DefaultAdminUsername = "admin"

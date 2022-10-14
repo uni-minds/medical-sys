@@ -1,8 +1,25 @@
 jsGrid.locale("zh-cn");
 
+class MediaLockMonitorObj {
+    data;
+    constructor() {
+
+    }
+
+    setMediaIds(ids) {
+        console.log("monitor id:",ids)
+        this.data.ids = ids
+    }
+
+    updateLocks() {
+
+    }
+
+}
+
 $(function() {
     let lastPageIndex = 1;
-    $.get("/api/v1/group?action=getlist", result=> {
+    $.get("/api/v1/group?action=getlistfull", result=> {
         if (result.code === 200 && result.data.length > 0) {
             let cc = CreateCardContainer("main-content");
             CreateCardHead(cc);
@@ -36,13 +53,11 @@ $(function() {
         cardContainer.append(obj)
     }
 
-    function CreateCardHeadGroupButton(gids, cardContainer) {
-        gids.forEach(function (gid) {
-            $.get(`/api/v1/group?action=getname&gid=${gid}`, resp => {
-                if (resp.code === 200) {
-                    CreateGroupButtonObj(gid, resp.data, cardContainer)
-                }
-            });
+    function CreateCardHeadGroupButton(data, cardContainer) {
+        console.log("G<-",data)
+
+        data.forEach(i=> {
+            CreateGroupButtonObj(i.Gid, i.Name, cardContainer)
         });
 
         function CreateGroupButtonObj(gid, gname, cardContainer) {
@@ -105,7 +120,7 @@ $(function() {
          * @return {string}
          */
         function FormatViewContent(value) {
-            console.log("View:",value)
+            // console.log("View:",value)
             if (value.startsWith('[')) {
                 let v = JSON.parse(value);
                 let t = "";
@@ -140,8 +155,6 @@ $(function() {
          * @return {null}
          */
         function LabelAuthorRender(value, dataCol) {
-            console.log(1, value)
-
             let view;
             try {
                 view = FormatViewContent(dataCol.view).toLowerCase()
@@ -224,7 +237,7 @@ $(function() {
          * @return {null}
          */
         function LabelReviewRender(value, dataCol) {
-            console.log(2, value, dataCol);
+            // console.log(2, value, dataCol);
 
             let view;
             try {

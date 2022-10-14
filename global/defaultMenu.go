@@ -27,15 +27,20 @@ func DefaultMenuData() []MenuStruct {
 		Icon:       "fas fa-search",
 		Child: []MenuStruct{
 			{
+				Id:         "us-screen",
+				Name:       "超声 - 挑图",
+				Icon:       "fas fa-image",
+				Controller: "/ui/screen?type=us",
+			}, {
+				Id:         "us-medialist",
+				Name:       "超声 - 标注",
+				Icon:       "fas fa-image",
+				Controller: "/ui/medialist?type=us",
+			}, {
 				Id:         "ct-medialist",
 				Name:       "CT 影像检索",
 				Controller: "/ui/medialist?type=ct",
 				Icon:       "far fa-images",
-			}, {
-				Id:         "us-medialist",
-				Name:       "超声影像检索",
-				Icon:       "fas fa-image",
-				Controller: "/ui/medialist?type=us",
 			},
 		},
 	})

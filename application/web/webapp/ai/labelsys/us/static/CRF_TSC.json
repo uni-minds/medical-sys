@@ -1,9 +1,0 @@
-{
-  "id": "tsc",
-  "describe": "横纹肌瘤",
-  "data": [
-  {"class":"LabelBtn","cid":"TSC1","name":"TSC1","color":"#FFA"},
-  {"class":"LabelBtn","cid":"TSC2","name":"TSC2","color":"#FFC"},
-  {"class":"LabelBtn","cid":"TSC3","name":"TSC3","color":"#FFE"}
-  ]
-}
