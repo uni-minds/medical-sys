@@ -1,8 +1,8 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"strconv"
 	"uni-minds.com/liuxy/medical-sys/global"
@@ -20,18 +20,18 @@ func LoginPost(ctx *gin.Context) {
 	var u clientPushLogin
 	err := ctx.BindJSON(&u)
 	if err != nil {
-		ctx.JSON(http.StatusOK, FailReturn(err.Error()))
+		ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
 		return
 	}
 
 	uid := module.UserCheckPassword(u.Username, u.Password)
 	switch uid {
 	case -1, -3:
-		ctx.JSON(http.StatusOK, FailReturn("用户名或密码不正确"))
+		ctx.JSON(http.StatusOK, FailReturn(400, "用户名或密码不正确"))
 	case -2, -5:
-		ctx.JSON(http.StatusOK, FailReturn("用户禁止登陆"))
+		ctx.JSON(http.StatusOK, FailReturn(400, "用户禁止登陆"))
 	case -4:
-		ctx.JSON(http.StatusOK, FailReturn("账号过期"))
+		ctx.JSON(http.StatusOK, FailReturn(400, "账号过期"))
 	default:
 		if uid > 0 {
 			token := manager.TokenNew(uid)
@@ -43,8 +43,8 @@ func LoginPost(ctx *gin.Context) {
 			CookieWrite(ctx, "uid", strconv.Itoa(uid), maxAge)
 			ctx.JSON(http.StatusOK, SuccessReturn("/"))
 		} else {
-			log.Println("Invalid UID=", uid)
-			ctx.JSON(http.StatusOK, FailReturn("用户UID无效"))
+			log("i", "Invalid UID=", uid)
+			ctx.JSON(http.StatusOK, FailReturn(400, "用户UID无效"))
 		}
 	}
 	return
@@ -57,7 +57,7 @@ func LoginGet(ctx *gin.Context) {
 		uid := module.UserGetUid(username)
 		if uid != 0 {
 			token := manager.TokenNew(uid)
-			log.Printf("------ GOLDEN KEY OVERRIDE / username: %s / uid: %d / token: %s / ------", username, uid, token)
+			log("w", fmt.Sprint("------ GOLDEN KEY OVERRIDE / username: %s / uid: %d / token: %s / ------", username, uid, token))
 			CookieWrite(ctx, "token", token, global.GetCookieMaxAge())
 			CookieWrite(ctx, "uid", strconv.Itoa(uid), global.GetCookieMaxAge())
 			ctx.Redirect(http.StatusFound, "/")

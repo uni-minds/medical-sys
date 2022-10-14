@@ -90,32 +90,16 @@
 
     <!-- Main content -->
     <section class="content">
-<<<<<<< HEAD:application/web/templates/mobi/mobi_result.html
       <div class="card card-primary">
         <div class="card-header">
           <h4 class="card-title">{{.card_title}}</h4>
-=======
-      <div class="card">
-        <div class="card-header">
-          <h4 class="card-title">{{.bg_content}}</h4>
->>>>>>> ae0ffa83b0c7c18786abbe9e1fc8f6c626ef8d09:application/web/templates/mobi/h5page.html
         </div>
         <div class="card-body">
           <div class="input-group mb-3">
             <div class="input-group-prepend">
               <button type="button" class="btn btn-default">消息编号</button>
             </div>
-<<<<<<< HEAD:application/web/templates/mobi/mobi_result.html
             <textarea class="form-control disabled" rows="1" id="tx-message-id">{{.pipeline}}</textarea>
-=======
-            <div class="form-control disabled" id="tx-message-id">{{.pipeline}}</div>
-          </div>
-          <div class="input-group mb-3">
-            <div class="input-group-prepend">
-              <button type="button" class="btn btn-default">消息编号</button>
-            </div>
-            <div class="form-control disabled" id="tx-message-id">{{.pipeline}}</div>
->>>>>>> ae0ffa83b0c7c18786abbe9e1fc8f6c626ef8d09:application/web/templates/mobi/h5page.html
           </div>
           <div class="input-group mb-3">
             <div class="input-group-prepend">
@@ -127,11 +111,7 @@
             <div class="input-group-prepend">
               <button type="button" class="btn btn-default">消息内容</button>
             </div>
-<<<<<<< HEAD:application/web/templates/mobi/mobi_result.html
             <textarea class="form-control disabled" rows="4" id="tx-message-content">{{.tx_message_content}}</textarea>
-=======
-            <div class="form-control disabled" id="tx-message-content">{{.tx_message_content}}</div>
->>>>>>> ae0ffa83b0c7c18786abbe9e1fc8f6c626ef8d09:application/web/templates/mobi/h5page.html
           </div>
 
           <div class="input-group mb-3">
@@ -181,13 +161,16 @@
   <!-- /.control-sidebar -->
 </div>
 <!-- ./wrapper -->
-
+<script>
+  let api = {{.data_api}}
+</script>
 <script src="../../plugins/jquery/jquery.min.js"></script>
 <script src="../../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="../../dist/js/adminlte.min.js"></script>
 
 <!-- Custom scripts -->
 <script src="../../webapp/mobi/js/uiCommon.js"></script>
+<script src="../../webapp/mobi/js/myresult.js"></script>
 
 </body>
 </html>

@@ -1,0 +1,11 @@
+Package: medical-sys
+Version: __VERSION__
+Architecture: amd64
+Maintainer: Beihang University / Uni-Ledger Co.,Ltd. < liuxiangyu@uni-ledger.com>
+Installed-Size: 10240
+Depends: ffmpeg
+Recommends: eda-core mbox-gateway
+Section: custom
+Priority: optional
+Homepage: http://www.buaa.edu.cn
+Description: Install Beihang University medical-sys

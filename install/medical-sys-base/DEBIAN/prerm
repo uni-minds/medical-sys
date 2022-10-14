@@ -1,0 +1,23 @@
+#!/bin/sh
+
+#
+# Copyright (c) 2019-2020
+# Author: LIU Xiangyu
+# File: prerm
+# Description:
+#
+
+SERVICE_CORE=mbox-core.service
+
+printf "\n>>> disable services...\n"
+if [ -f /lib/systemd/system/$SERVICE_CORE ]; then
+  systemctl stop $SERVICE_CORE
+  systemctl disable $SERVICE_CORE
+fi
+
+printf "\n>>> services disabled."
+
+printf "\n>>> disable modprobe."
+modprobe -r LXV4L2D_PL330B
+
+exit 0

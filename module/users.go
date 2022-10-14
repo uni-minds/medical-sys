@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 	"strings"
 	"time"
@@ -83,7 +82,7 @@ func UserGetGroupMedia(uid, gid int) (mids []int) {
 
 	mids, err := database.GroupGetMedia(gid)
 	if err != nil {
-		log.Println(err.Error())
+		log("i", err.Error())
 	}
 	return mids
 }
@@ -167,7 +166,7 @@ func UserGetGroupMediaSelector(uid, gid int, sortField, sortOrder string) []int 
 func UserGetUidFromMemo(memo string) int {
 	u, err := database.UserGetManual("memo", memo)
 	if err != nil {
-		log.Println("Find by memo E:", err.Error())
+		log("i", "Find by memo E:", err.Error())
 		return 0
 	}
 	return u.Uid
@@ -191,7 +190,7 @@ func UserGetMediaMemo(uid, mid int) string {
 func UserGetMid(uid int, hash string) int {
 	mi, err := userGetMediaInfo(uid, hash)
 	if err != nil {
-		log.Println("E UserGetMid", err.Error())
+		log("i", "E UserGetMid", err.Error())
 		return 0
 	} else {
 		return mi.Mid
@@ -203,7 +202,7 @@ func userGetMediaInfo(uid int, i interface{}) (mi database.MediaInfo, err error)
 		return
 	}
 	if UserIsAdmin(uid) {
-		log.Println("Admins override.")
+		log("i", "Admins override.")
 		return tmp, nil
 	}
 
@@ -247,7 +246,7 @@ func UserSetMediaMemo(uid, mid int, memo string) error {
 	if err != nil {
 		return err
 	}
-	log.Println("Memo update:", mid, uid, mi.Memo, "->", memo)
+	log("i", "Memo update:", mid, uid, mi.Memo, "->", memo)
 	return database.MediaUpdateMemo(mid, memo)
 }
 
@@ -292,7 +291,7 @@ func UserGroupsList(uid int) (groups []UserGroupInfo) {
 	groups = make([]UserGroupInfo, 0)
 
 	for _, v := range gl {
-		log.Println(v)
+		log("i", v)
 		//g := UserGroupInfo{
 		//	Gid:       v.Gid,
 		//	GroupName: v.GroupName,
@@ -303,26 +302,29 @@ func UserGroupsList(uid int) (groups []UserGroupInfo) {
 
 // passwords
 func UserCheckPassword(username, password string) (uid int) {
-	fmt.Println("checking:", username, password)
 	u, err := database.UserGet(username)
 	if err != nil {
-		log.Println(err.Error())
+		log("e", "userLogin:", err.Error())
 		return -1 //用户不存在
 	}
-	fmt.Println("calc target", u.Password, u.PasswordSalt)
 	if u.Activate == 0 {
+		log("e", fmt.Sprintf("login user: %s is deactivate", username))
 		return -2 //账号未确认
 	}
 
 	result := tools.GetStringMD5(password + u.PasswordSalt)
-	fmt.Println("calc result", result)
+	if u.LoginFailCount > 1 {
+		time.Sleep(3 * time.Second)
+	}
+
 	if u.Password != result {
 		t := u.LoginFailCount + 1
+		log("e", fmt.Sprintf("login failed: %s, %d times", username, t))
 		database.UserUpdateTryFailureCount(u.Uid, t)
 		if t >= 5 {
+			log("e", "user account now deactivate")
 			database.UserUpdateAccountActiveType(u.Uid, -1)
 		}
-		log.Println("Login failure count", t)
 		return -3 //密码错
 	}
 
@@ -333,6 +335,7 @@ func UserCheckPassword(username, password string) (uid int) {
 		}
 	}
 
+	log("i", fmt.Sprintf("login success: %s", username))
 	database.UserUpdateTryFailureCount(u.Uid, 0)
 	database.UserUpdateLoginCount(u.Uid, u.LoginCount+1)
 
@@ -367,7 +370,7 @@ func UserGetAll() map[int]database.UserInfo {
 
 	uis, err := database.UserGetAll()
 	if err != nil {
-		log.Println("E;UserGetAll:", err.Error())
+		log("e", "userGetAll:", err.Error())
 		return nil
 	}
 

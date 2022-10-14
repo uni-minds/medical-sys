@@ -1,18 +1,27 @@
 function main() {
+    let algolist = []
+
+    $.get("/api/v1/algo").done((resp) => {
+        algolist = resp.data
+        algolist.forEach((val,i) => {
+            $("#s-algo").append($("<option>").val(i).text(val["algo-name"]))
+        })
+    })
+
     $("#s-exec").click(function () {
         let mask = $('<div id="main-mask" class="overlay dark" ><i class="fas fa-3x fa-sync-alt fa-spin"></i></div>')
         $("#main-body").prepend(mask)
 
-        let dev = $("#s-dev").val()
-        let algo = $("#s-algo").val()
-        let url = `/mobi/exec?dev=${dev}&algoid=${algo}`
-        $.get(url, function (resp) {
-            if (resp.code !== 200) {
-                alert(`异常反馈：${resp}`)
-            } else {
-                $("#main-mask").remove()
-                window.location.href = `/mobi/result/${resp.data}`
-            }
+        let algo = algolist[$("#s-algo").val()]
+        let data = {}
+        data["dev"] = $("#s-dev").val()
+        data["algo-ref"] = algo["algo-ref"]
+        $.post("/mobi/exec", JSON.stringify(data), "json").done((resp) => {
+            $("#main-mask").remove()
+            window.location.href = `/mobi/result/${resp.data}`
+        }).fail(() => {
+            alert("设备无法连接")
+            $("#main-mask").remove()
         })
     })
 }

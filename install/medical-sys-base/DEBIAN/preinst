@@ -1,0 +1,12 @@
+#!/bin/sh
+
+#
+# Copyright (c) 2019-2020
+# Author: LIU Xiangyu
+# File: preinst
+# Description:
+#
+
+mkdir -p /usr/local/uni-ledger
+
+exit 0

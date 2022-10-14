@@ -2,7 +2,6 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 )
 
@@ -18,23 +17,23 @@ func MediBoxGetHandler(ctx *gin.Context) {
 	token := ctx.Query("token")
 	ordtime := ctx.Query("time")
 
-	log.Println("OPS=", ops, "; DEV=", devid, "; TOKEN=", token, "; T=", ordtime)
+	log("i", "OPS=", ops, "; DEV=", devid, "; TOKEN=", token, "; T=", ordtime)
 
 	switch ops {
 	case "record-start":
-		log.Println("Start record.")
+		log("i", "Start record.")
 		ctx.JSON(http.StatusOK, SuccessReturn("OK"))
 
 	case "record-stop":
-		log.Println("Stop record.")
+		log("i", "Stop record.")
 		ctx.JSON(http.StatusOK, SuccessReturn("UUID_DEMO_VID"))
 
 	case "capture":
-		log.Println("Cap.")
+		log("i", "Cap.")
 		ctx.JSON(http.StatusOK, SuccessReturn("UUID_DEMO_PIC"))
 
 	case "status":
-		log.Println("Status")
+		log("i", "Status")
 		s := DeviceStatus{
 			DeviceName:   "B205",
 			DeviceStatus: "busy",
@@ -42,6 +41,6 @@ func MediBoxGetHandler(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, SuccessReturn(s))
 
 	default:
-		ctx.JSON(http.StatusOK, FailReturn(ops))
+		ctx.JSON(http.StatusOK, FailReturn(400, ops))
 	}
 }

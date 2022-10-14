@@ -5,9 +5,14 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"time"
+	"strings"
 	"uni-minds.com/liuxy/medical-sys/tools"
 )
+
+type execInfo struct {
+	Device  string `json:"dev"`
+	AlgoRef string `json:"algo-ref"`
+}
 
 func MobiGetDevice(ctx *gin.Context) {
 	ctx.HTML(http.StatusOK, "mobi_device.html", gin.H{
@@ -19,9 +24,10 @@ func MobiGetDevice(ctx *gin.Context) {
 
 func MobiGetResult(ctx *gin.Context) {
 	pipeline := ctx.Param("pipeline")
-	url := fmt.Sprintf("http://localhost:10000/api/v1/mbox/pipeline/%s", pipeline)
-	data, _, _, err := tools.HttpGet(url)
+	url := fmt.Sprintf("http://%s/api/v1/mbox/pipeline/%s", edaAddress, pipeline)
+	data, raw, err := tools.HttpGet(url)
 
+	log("t", "url resp:", string(raw), err)
 	if err != nil {
 		ctx.HTML(http.StatusOK, "mobi_result.html", gin.H{
 			"title":                  "结果",
@@ -35,9 +41,25 @@ func MobiGetResult(ctx *gin.Context) {
 			"tx_pipeline_init":       "PIPI",
 			"tx_pipeline_upstream":   "PIPU",
 			"tx_pipeline_downstream": "PIPD",
+			"data_api":               url,
 		})
 	} else if data.Code != 200 {
-		fmt.Println("B", data.Message)
+		log("e", "mobiGetResult err code", data.Code)
+	} else if data.Data == nil {
+		ctx.HTML(http.StatusOK, "mobi_result.html", gin.H{
+			"title":                  "结果",
+			"page_id":                "Result",
+			"card_title":             "未检索到相关消息",
+			"pipeline":               pipeline,
+			"tx_message_time":        "无",
+			"tx_message_content":     "无法获取消息：消息不存在或正在共识队列中，请检查消息编号是否正确",
+			"tx_sandbox_id":          "无",
+			"tx_sandbox_type":        "none",
+			"tx_pipeline_init":       "PIPI",
+			"tx_pipeline_upstream":   "PIPU",
+			"tx_pipeline_downstream": "PIPD",
+			"data_api":               url,
+		})
 	} else {
 		d := make([]map[string]string, 0)
 		bs, _ := json.Marshal(data.Data)
@@ -57,33 +79,37 @@ func MobiGetResult(ctx *gin.Context) {
 			"tx_pipeline_init":       d0["NodeId"],
 			"tx_pipeline_upstream":   d0["SrcId"],
 			"tx_pipeline_downstream": d0["DescId"],
+			"data_api":               url,
 		})
 	}
 }
 
 func MobiMyExec(ctx *gin.Context) {
-	dev := ctx.Query("dev")
-	algoid := ctx.Query("algoid")
-	url := fmt.Sprintf("https://localhost:8442/medi-box/%s/capture?remark=demo&algoid=%s", dev, algoid)
-
-	data, _, _, _ := tools.HttpGet(url)
-	pipeline := data.Data.(string)
-	if pipeline == "" {
-		ctx.JSON(http.StatusOK, FailReturn("pipeline is empty"))
+	var info execInfo
+	err := ctx.BindJSON(&info)
+	if err != nil {
+		log("e", "E1", err.Error())
+		ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
 		return
 	}
 
-	url = fmt.Sprintf("http://localhost:10000/api/v1/mbox/pipeline/%s", pipeline)
-	for {
-		data, _, _, err := tools.HttpGet(url)
-		if err != nil {
-			ctx.JSON(http.StatusOK, FailReturn(err.Error()))
-			return
-		} else if data.Data != nil {
-			ctx.JSON(http.StatusOK, SuccessReturn(pipeline))
-			return
-		}
-		time.Sleep(50 * time.Millisecond)
+	info.AlgoRef = strings.Replace(info.AlgoRef, "//", "/", -1)
+
+	url := fmt.Sprintf("https://%s/medi-box/%s/capture", mboxGateway, info.Device)
+	log("i", "exec url", url)
+
+	resp, _, err := tools.HttpPost(url, info, "json")
+	if err != nil {
+		log("e", "mbox-gateway no response:", err.Error())
+		ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+	}
+
+	pipeline := resp.Data.(string)
+	if pipeline == "" {
+		ctx.JSON(http.StatusOK, FailReturn(400, "pipeline is empty"))
+		return
+	} else {
+		ctx.JSON(http.StatusOK, SuccessReturn(pipeline))
 	}
 }
 

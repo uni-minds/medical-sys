@@ -15,7 +15,7 @@ import (
 	"uni-minds.com/liuxy/medical-sys/module"
 )
 
-func UILabeltoolGet(ctx *gin.Context) {
+func UiLabeltoolGet(ctx *gin.Context) {
 	content := ""
 	tp := ctx.Query("type")
 	switch tp {
@@ -43,7 +43,7 @@ func UILabeltoolGet(ctx *gin.Context) {
 			"media_frames":   summary.Frames,
 			"media_height":   summary.Height,
 			"media_width":    summary.Width,
-			"custom_scripts": "/webapp/us/js/labelsys-v2.js",
+			"custom_scripts": "/webapp/labelsys/us/labelsys-v2.js",
 		})
 		break
 

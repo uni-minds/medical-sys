@@ -93,92 +93,22 @@
         <div class="container-fluid">
           <!-- 监控卡片 -->
           <div class="row">
-            <!-- Group1 -->
             <div class="col-12">
               <div class="card card-primary">
                 <div class="card-header">
-                  <h3 class="card-title">
-                    <i class="far fa-chart-bar"></i>节点状态</h3>
+                  <h3 class="card-title"><i class="far fa-chart-bar"></i>节点状态</h3>
                 </div>
-                <!-- /.card-header -->
                 <div class="card-body">
-                  <div class="row mt-4">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-1-node1-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-1-node1-name"></a></b><br /><br />
-                        H:<a id="center-1-node1-height"></a> IP:<a id="center-1-node1-ip"></a>&nbsp;
-                      </div>
-                    </div>
-                  </div>
-                  <br />
-
-                  <div class="row">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-1-node2-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-1-node2-name"></a></b><br /><br />
-                        H:<a id="center-1-node2-height"></a> IP:<a id="center-1-node2-ip"></a>&nbsp;
-                      </div>
-                    </div>
-                  </div>
-                  <br />
-
-                  <div class="row">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-1-node3-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-1-node3-name"></a></b><br /><br />
-                        H:<a id="center-1-node3-height"></a> IP:<a id="center-1-node3-ip"></a>&nbsp;
-                      </div>
-                    </div>
-                  </div>
-                  <br />
-
-                  <div class="row">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-1-node4-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-1-node4-name"></a></b><br /><br />
-                        H:<a id="center-1-node4-height"></a> IP:<a id="center-1-node4-ip"></a>&nbsp;
-                      </div>
-                    </div>
-                  </div>
-                  <br />
-
-                  <div class="row">
-                    <div class="col-12">
-                      <div class="position-relative p-3 bg-gray" style="height: 120px">
-                        <div class="ribbon-wrapper ribbon-lg">
-                          <div id="center-1-node5-status" class="ribbon bg-success text-lg"></div>
-                        </div>
-                        <b><a id="center-1-node5-name"></a></b><br /><br />
-                        H:<a id="center-1-node5-height"></a> IP:<a id="center-1-node5-ip"></a>&nbsp;
-                      </div>
-                    </div>
-                  </div>
-                  <br />
+                  <div id="nodelist" class="row"></div>
                 </div>
-                <!-- /.card-body -->
               </div>
-              <!-- /.card -->
             </div>
-            <!-- /.col -->
           </div>
-          <!-- /.row -->
-          <!-- tps -->
+
           <div class="row">
             <div class="col-12">
               <!-- interactive chart -->
-              <div class="card card-success card-outline">
+              <div class="card card-primary card-outline">
                 <div class="card-header">
                   <h3 class="card-title">
                     <i class="far fa-chart-bar"></i>
@@ -198,8 +128,6 @@
                 </div>
                 <!-- /.card-body-->
               </div>
-              <!-- /.card -->
-
             </div>
           </div>
         </div>
@@ -233,6 +161,7 @@
 
 <script src="../../webapp/common/js/uiCommon.js"></script>
 <script src="../../webapp/manage/blockchain.js"></script>
+<script src="../../webapp/common/js/ws.js"></script>
 <!-- Custom scripts -->
 <script>
   let navMenuActive="{{.page_id}}";

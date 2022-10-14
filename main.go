@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2019-2020
+ * Author: LIU Xiangyu
+ * File: main.go
+ * Description:
+ */
+
 package main
 
 import (
@@ -5,28 +12,35 @@ import (
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"os"
 	"path"
 	"time"
 	"uni-minds.com/liuxy/medical-sys/controller"
 	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/logger"
 	"uni-minds.com/liuxy/medical-sys/module"
+	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
-var _BUILD_TIME_ = "20201022"
-var _BUILD_REV_ = "DEBUG"
-var _BUILD_VER_ = "2.1"
+const tag = "MAIN"
+
+var (
+	_BUILD_VER_  = "0.0.0"
+	_BUILD_TIME_ = ""
+	_BUILD_REV_  = "DEV"
+)
 
 func main() {
-	var argHttps bool
+	var argHttps, argVerbose, argDebug bool
 	var argPort int
 	var argRegCode string
 
 	config := global.GetAppSettings()
 
-	flag.BoolVar(&argHttps, "s", config.SystemUseHttps, "use https (need certification file)")
+	flag.BoolVar(&argDebug, "debug", false, "Set debug mode (golden token enable)")
+	flag.BoolVar(&argVerbose, "v", false, "Verbose")
+	flag.BoolVar(&argHttps, "s", config.SystemUseHttps, "use https (need certs file)")
 	flag.IntVar(&argPort, "p", config.SystemListenPort, "use port")
 	flag.StringVar(&argRegCode, "r", config.UserRegisterCode, "register code")
 	flag.Parse()
@@ -37,29 +51,27 @@ func main() {
 	global.SetAppSettings(config)
 
 	t, _ := time.Parse("2006-01-02 15:04:05", _BUILD_TIME_)
-	verStr := fmt.Sprintf("%s(%s) %s", _BUILD_VER_, _BUILD_REV_, t.Format("20060102-150405"))
-	fmt.Println(color.HiRedString("Version: %s", verStr))
-	global.SetVersionString(verStr)
+	version := fmt.Sprintf("%s.%s_arm64_%s", _BUILD_VER_, t.Format("20060102"), _BUILD_REV_)
+	global.SetVersionString(version)
+	logo(version)
 
-	if err := os.MkdirAll(path.Join(config.SystemAppPath, "log"), os.ModePerm); err != nil {
-		panic(err.Error())
-	}
-	fp1, err := os.OpenFile(path.Join(config.SystemAppPath, "log/access.log"), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
-	if err != nil {
-		panic(err.Error())
-	}
-	defer fp1.Close()
+	logger.Init(path.Join(config.SystemLogFolder, "medical-sys.log"), argVerbose)
+	global.DebugSetFlag(argDebug)
 
-	fp2, err := os.OpenFile(path.Join(config.SystemAppPath, "log/error.log"), os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0600)
-	if err != nil {
-		panic(err.Error())
-	}
-	defer fp2.Close()
+	gin.SetMode(gin.ReleaseMode)
+	router := gin.New()
+	//router.Use(timeoutMiddleware(5 * time.Second))
+	router.Use(gin.Recovery(), gin.ErrorLogger())
+	router.Use(gin.LoggerWithFormatter(func(params gin.LogFormatterParams) string {
+		switch params.StatusCode {
+		case 200:
+			logger.Write("HTTP", "t", fmt.Sprintf("%-4s 200 %s", params.Method, params.Path))
+		default:
+			logger.Write("HTTP", "w", fmt.Sprintf("%-4s %d %s", params.Method, params.StatusCode, params.Path))
+		}
+		return ""
+	}))
 
-	gin.DefaultWriter = fp1
-	gin.DefaultErrorWriter = fp2
-
-	router := gin.Default()
 	module.Init()
 	{
 		router.Static("/build", path.Join(config.SystemAppPath, "web/build"))
@@ -81,11 +93,12 @@ func main() {
 
 	rUi := router.Group("/ui", checkUserAuthorized)
 	{
-		rUi.GET("/home", controller.UIHomeGet)
-		rUi.GET("/manage/:class", controller.UIManageGetHandler)
-		rUi.GET("/medialist", controller.UIMedialistGet)
-		rUi.GET("/labeltool", controller.UILabeltoolGet)
-		rUi.GET("/import", controller.UIImportMedia)
+		rUi.GET("/home", controller.UiHomeGet)
+		rUi.GET("/manage/:class", controller.UiManageGetHandler)
+		rUi.GET("/medialist", controller.UiMedialistGet)
+		rUi.GET("/labeltool", controller.UiLabeltoolGet)
+		rUi.GET("/import", controller.UiImportMedia)
+		rUi.GET("/analysis", controller.UiAnalysisGet)
 	}
 
 	rMobi := router.Group("/mobi", checkUserAuthorized)
@@ -93,7 +106,7 @@ func main() {
 		rMobi.GET("/", controller.MobiRoot)
 		rMobi.GET("/device", controller.MobiGetDevice)
 		rMobi.GET("/result/:pipeline", controller.MobiGetResult)
-		rMobi.GET("/exec", controller.MobiMyExec)
+		rMobi.POST("/exec", controller.MobiMyExec)
 	}
 
 	apiV1 := router.Group("/api/v1", checkUserAuthorized)
@@ -112,37 +125,75 @@ func main() {
 		apiV1.POST("label", controller.LabelPost)
 		apiV1.DELETE("label", controller.LabelDel)
 
+		apiV1.GET("algo", controller.AlgoGet)
+		apiV1.POST("algo", controller.AlgoPost)
+
 		apiV1.GET("group", controller.GroupGet)
 
-		apiV1.GET("raw", controller.GetRawData)
+		apiV1.GET("raw", controller.RawDataGet)
 
 		apiV1.GET("blockchain/nodelist", controller.GetBlockchainNodelist)
 		apiV1.GET("blockchain/tps", controller.GetBlockchainTPS)
 		apiV1.GET("blockchain/height", controller.GetBlockHeight)
 
-		apiV1.Group("database/ct/:class/rs").Any("/*a", controller.GetDatabaseDicomCtRsGroup)
-		apiV1.Group("database/ct/:class/wado").Any("/*a", controller.GetDatabaseDicomCtWadoGroup)
+		pacs := apiV1.Group("pacs")
+		{
+			pacs.Any("/", controller.PacsGet)
+			pacs.Any("/:db", controller.PacsGetNodelist)
+			pacs.Any("/:db/:node", controller.PacsSearchProxy)
+			pacs.Any("/:db/:node/:studyuid", controller.PacsSearchProxy)
+			pacs.Any("/:db/:node/:studyuid/:seriesuid", controller.PacsSearchProxy)
+			pacs.Any("/:db/:node/:studyuid/:seriesuid/:objectuid", controller.PacsSearchProxy)
+			//pacs.Any("/:db/:node/wado", controller.PacsWado)
+		}
+
 		apiV1.POST("analysis/ct/:class/:mode", controller.AnalysisCtPost)
 
+		aiApi := apiV1.Group("ai")
+		aiApi.GET(":modal/:class/:algo/:aid", controller.AiAlgoGet)
+		aiApi.GET(":modal/:class/:algo/:aid/:part", controller.AiAlgoGet)
+		aiApi.POST(":modal/:class/:algo", controller.AiAlgoPost)
 	}
 
-	certPem := path.Join(config.SystemAppPath, "server.crt")
-	certKey := path.Join(config.SystemAppPath, "server.key")
+	router.GET("/ws", controller.WebSocket)
+
 	strPort := fmt.Sprintf(":%d", config.SystemListenPort)
 
 	if argHttps {
-		log.Println(color.RedString("Use HTTPS @ Port %s", strPort))
-		router.RunTLS(strPort, certPem, certKey)
+		log("i", "use https @ port", strPort)
+		certPem := path.Join(config.SystemAppPath, "certs/server.crt")
+		certKey := path.Join(config.SystemAppPath, "certs/server.key")
+		if _, err := os.Stat(certKey); err != nil {
+			panic("certs not found")
+		} else {
+			if err = router.RunTLS(strPort, certPem, certKey); err != nil {
+				log("e", err.Error())
+			}
+		}
 	} else {
-		log.Println(color.RedString("Use HTTP @ Port %s", strPort))
-		router.Run(strPort)
+		log("w", "use http @ port", strPort)
+		if err := router.Run(strPort); err != nil {
+			log("e", err.Error())
+		}
 	}
 }
 
 func checkUserAuthorized(ctx *gin.Context) {
-	valid, _ := controller.CookieValidUid(ctx)
-	if !valid {
-		log.Println(color.HiRedString("Unauthorized"))
+	key := ctx.Query("key")
+	if global.DebugGetFlag() && key == "ADMIN_BUAA" {
+		log("w", "Debug ignore user check")
+		ctx.Next()
+	} else if valid, _ := controller.CookieValidUid(ctx); !valid {
 		ctx.Redirect(http.StatusFound, "/")
 	}
+}
+
+func logo(version string) {
+	fmt.Println(color.HiGreenString("    __  ___         ___            __                     \n   /  |/  /__  ____/ (_)________ _/ /     _______  _______\n  / /|_/ / _ \\/ __  / / ___/ __ `/ /_____/ ___/ / / / ___/\n / /  / /  __/ /_/ / / /__/ /_/ / /_____(__  ) /_/ (__  ) \n/_/  /_/\\___/\\__,_/_/\\___/\\__,_/_/     /____/\\__, /____/  \n                                            /____/"))
+	fmt.Println(color.HiMagentaString("Beihang university medical-sys %s", version))
+}
+
+func log(level string, message ...interface{}) {
+	msg := tools.ExpandInterface(message)
+	logger.Write(tag, level, msg)
 }

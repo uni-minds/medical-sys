@@ -1,9 +1,10 @@
 package module
 
 import (
-	"log"
 	"uni-minds.com/liuxy/medical-sys/database"
 	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/logger"
+	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 func Init() {
@@ -17,7 +18,7 @@ func checkDefaultUser() {
 			GroupName: global.DefaultAdminGroup,
 			Memo:      "管理员组",
 		})
-		log.Println("创建默认管理员组", gid)
+		log("i", "创建默认管理员组", gid)
 		g.Gid = gid
 	}
 
@@ -36,6 +37,13 @@ func checkDefaultUser() {
 		}
 		_ = database.GroupAddUser(g.Gid, uid, p)
 		_ = UserSetPassword(uid, global.DefaultAdminPassword)
-		log.Println("创建默认管理员账户")
+		log("i", "创建默认管理员账户")
 	}
+}
+
+const tag = "MODU"
+
+func log(level string, message ...interface{}) {
+	msg := tools.ExpandInterface(message)
+	logger.Write(tag, level, msg)
 }

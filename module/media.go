@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/Unknwon/goconfig"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -29,27 +28,6 @@ type MediaSummaryInfo struct {
 	Hash        string
 }
 
-//type MediaSummaryAuthorInfo struct {
-//	Realname   string
-//	Frames     int
-//	Counts     int
-//	UpdateTime string
-//	Progress   string
-//	Hash       string
-//	Memo       string
-//	IsReviewed bool
-//	IsModified bool
-//}
-//type MediaSummaryReviewInfo struct {
-//	Realname   string
-//	UpdateTime string
-//	Progress   string
-//	Tips       string
-//	Hash       string
-//	Memo       string
-//	Author     string
-//	AuthorTime string
-//}
 type MediaImportJson struct {
 	Source    string   `json:"source"`
 	Filename  string   `json:"target"`
@@ -137,7 +115,7 @@ func MediaGetSummary(mid int) (summary MediaSummaryInfo, err error) {
 func MediaGetMid(hash string) int {
 	mi, err := database.MediaGet(hash)
 	if err != nil {
-		log.Println("MediaGet E", err.Error())
+		log("i", "MediaGet E", err.Error())
 		return -1
 	}
 	return mi.Mid
@@ -159,7 +137,7 @@ func MediaGetLabelAuthorsSummary(uids, lids []int) []MediaSummaryAuthorInfo {
 
 			var labelInfoDataAuthor database.LabelInfoAuthorData
 			if li.Type != global.LabelTypeAuthor {
-				log.Println("error label_author wrong type of lid", li.Lid)
+				log("i","error label_author wrong type of lid", li.Lid)
 				continue
 			}
 
@@ -192,7 +170,7 @@ func MediaGetLabelReviewersSummary(uids, lids []int) []MediaSummaryReviewInfo {
 		for i, uid := range uids {
 			li, err := database.LabelGet(lids[i])
 			if err != nil {
-				log.Println(err.Error())
+				log("i",err.Error())
 			}
 			updateTime := ""
 			if li.ModifyTime != "" {
@@ -203,7 +181,7 @@ func MediaGetLabelReviewersSummary(uids, lids []int) []MediaSummaryReviewInfo {
 
 			var labelInfoDataReview database.LabelInfoReviewerData
 			if li.Type != global.LabelTypeReview {
-				log.Println("error label_review wrong type for lid", li.Lid)
+				log("i","error label_review wrong type for lid", li.Lid)
 				continue
 			}
 
@@ -298,7 +276,7 @@ func MediaImport(input, displayName, memo string, ownerUid int) (mi database.Med
 		UploadTime:  time.Now().Format(time.RFC3339),
 		Memo:        memo,
 	}
-	log.Println(mi)
+	log("i", mi)
 	return
 }
 func MediaInfo(mediafile string) (width, height, frames int, duration float64, codec string, err error) {
@@ -339,7 +317,7 @@ func MediaImportUsVideoOgv(srcFile, destFolder, dispname, view, descript, fcode,
 		return 0, errors.New("HASH校验值为空:" + srcFile)
 	}
 
-	log.Println("checksum", checksum)
+	log("i", "checksum", checksum)
 	mi, err := database.MediaGet(checksum)
 	if err == nil {
 		return mi.Mid, errors.New(global.EMediaAlreadyExisted)
@@ -407,7 +385,7 @@ func MediaImportFromJson(uid int, srcFolder, destFolder string, data []MediaImpo
 		dispname := strings.Split(filepath.Base(v.Source), ".")[0]
 		mid, err := MediaImportUsVideoOgv(srcFile, destFolder, dispname, v.View, v.Descript, v.Fcode, v.PatientID, v.MachineID, v.Keywords, uid)
 		if err != nil {
-			log.Println("导入过程中错误：", err.Error())
+			log("i", "导入过程中错误：", err.Error())
 			continue
 		}
 		_ = database.MediaUpdateFolderName(mid, filepath.Dir(v.Source))
@@ -436,7 +414,7 @@ func MediaImportFromJson(uid int, srcFolder, destFolder string, data []MediaImpo
 }
 func MediaGetRealpath(hash string, uid int) string {
 	mi, err := userGetMediaInfo(uid, hash)
-	log.Println("Find", hash, uid, mi.Path)
+	log("i", "Find", hash, uid, mi.Path)
 	if err != nil {
 		return ""
 	} else {

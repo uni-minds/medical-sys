@@ -1,0 +1,10 @@
+[Unit]
+Description=BUAA medical-sys v2
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/medical_sys
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

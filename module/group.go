@@ -2,7 +2,6 @@ package module
 
 import (
 	"errors"
-	"log"
 	"uni-minds.com/liuxy/medical-sys/database"
 )
 
@@ -120,7 +119,7 @@ func GroupDel(i interface{}) error {
 func GroupGetAll() map[int][]string {
 	gis, err := database.GroupGetAll()
 	if err != nil {
-		log.Println("E;GroupGetAll:", err.Error())
+		log("i", "E;GroupGetAll:", err.Error())
 		return nil
 	}
 

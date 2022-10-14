@@ -1,18 +1,21 @@
 package global
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 var versionString string
-var copyrightString string
+var copyrightHtml string
 
 func SetVersionString(s string) {
 	versionString = s
-	copyrightString = fmt.Sprintf(`<strong>Copyright &copy; 2020 <a href="http://uni-minds.com">Uni-Minds</a> /
+	copyrightHtml = fmt.Sprintf(`<strong>Copyright &copy; 2020 <a href="http://uni-minds.com">Uni-Minds</a> /
 <a href="http://www.buaa.edu.cn">Beihang University</a> / 
 <a href="http://www.anzhen.org">Beijing Anzhen Hospital, CCMU.</a> /
 <a href="http://www.uni-ledger.com">Uni-Ledger Co.,Ltd.</a> / 
 <a href="http://www.bijouxhealthcare.cn">Bijoux Healthcare Co.,Ltd.</a></strong> All rights reserved.
-<div class="float-right d-none d-sm-inline-block"><b>Ver</b> %s</div>`, s)
+<div class="float-right d-none d-sm-inline-block"><b>Ver</b> %s</div>`, strings.Split(s, "_")[0])
 }
 
 func GetVersionString() string {
@@ -20,5 +23,5 @@ func GetVersionString() string {
 }
 
 func GetCopyrightHtml() string {
-	return copyrightString
+	return copyrightHtml
 }

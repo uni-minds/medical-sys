@@ -43,7 +43,7 @@ func UserGet(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, SuccessReturn(string(jb)))
 
 	default:
-		ctx.JSON(http.StatusOK, FailReturn(action))
+		ctx.JSON(http.StatusOK, FailReturn(400, action))
 	}
 
 }
@@ -51,7 +51,7 @@ func UserGet(ctx *gin.Context) {
 func UserPost(ctx *gin.Context) {
 	valid, _ := CookieValidUid(ctx)
 	if !valid {
-		ctx.JSON(http.StatusOK, FailReturn(ETokenInvalid))
+		ctx.JSON(http.StatusOK, FailReturn(400, ETokenInvalid))
 		return
 	}
 }
@@ -59,7 +59,7 @@ func UserPost(ctx *gin.Context) {
 func UserDelete(ctx *gin.Context) {
 	valid, _ := CookieValidUid(ctx)
 	if !valid {
-		ctx.JSON(http.StatusOK, FailReturn(ETokenInvalid))
+		ctx.JSON(http.StatusOK, FailReturn(400, ETokenInvalid))
 		return
 	}
 }

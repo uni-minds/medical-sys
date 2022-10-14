@@ -10,7 +10,7 @@ import (
 func GroupGet(ctx *gin.Context) {
 	valid, uid := CookieValidUid(ctx)
 	if !valid {
-		ctx.JSON(http.StatusOK, FailReturn(ETokenInvalid))
+		ctx.JSON(http.StatusOK, FailReturn(400, ETokenInvalid))
 		return
 	}
 
@@ -26,26 +26,26 @@ func GroupGet(ctx *gin.Context) {
 		}
 
 		if len(gids) == 0 {
-			ctx.JSON(http.StatusOK, FailReturn("用户不属于任何组"))
+			ctx.JSON(http.StatusOK, FailReturn(400, "用户不属于任何组"))
 		} else {
 			ctx.JSON(http.StatusOK, SuccessReturn(gids))
 		}
 	case "getname":
 		gidstr := ctx.Query("gid")
 		if gidstr == "" {
-			ctx.JSON(http.StatusOK, FailReturn(EParameterInvalid))
+			ctx.JSON(http.StatusOK, FailReturn(400, EParameterInvalid))
 			return
 		}
 
 		gid, err := strconv.Atoi(gidstr)
 		if err != nil {
-			ctx.JSON(http.StatusOK, FailReturn(err.Error()))
+			ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
 			return
 		}
 
 		dispname := module.GroupGetDisplayname(gid)
 		ctx.JSON(http.StatusOK, SuccessReturn(dispname))
 	default:
-		ctx.JSON(http.StatusOK, FailReturn(action))
+		ctx.JSON(http.StatusOK, FailReturn(400, action))
 	}
 }

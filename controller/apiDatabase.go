@@ -1,73 +1,126 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strings"
+	"net/http/httputil"
+	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/module"
 	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
-type UriParams struct {
-	Includefield string `form:"includefield"`
-	StudyData    string `form:"StudyDate"`
-	Offset       int    `form:"offset"`
-	Limit        int    `form:"limit"`
-}
-
-func GetDatabaseDicomCtRsGroup(ctx *gin.Context) {
-	class := ctx.Param("class")
-	rsURI := strings.Split(ctx.Request.RequestURI, "/rs/")[1]
-
-	var uriParams UriParams
-	err := ctx.Bind(&uriParams)
+func PacsSearchProxy(ctx *gin.Context) {
+	db := ctx.Param("db")
+	node := ctx.Param("node")
+	studyUid := ctx.Param("studyuid")
+	seriesUid := ctx.Param("seriesuid")
+	objectUid := ctx.Param("objectuid")
+	addr, err := module.NodePacsGetAddr(node, db)
 	if err != nil {
-		ctx.JSON(http.StatusOK, FailReturn("检索异常"))
-		return
-	} else if (uriParams.Offset + uriParams.Limit) > 21 {
-		ctx.JSON(http.StatusOK, FailReturn("演示系统禁止"))
+		ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
 		return
 	}
 
-	switch class {
-	case "CTA":
-		url := fmt.Sprintf("http://172.16.1.121:8080/dcm4chee-arc/aets/AS_RECEIVED/rs/%s", rsURI)
-		_, t, bs, _ := tools.HttpGet(url)
-		if bs == nil && t != "" {
-			ctx.JSON(http.StatusOK, FailReturn(t))
-		} else {
-			ctx.JSON(http.StatusOK, SuccessReturn(string(bs)))
-		}
-	case "CCTA":
-		url := fmt.Sprintf("http://172.16.1.131:8080/dcm4chee-arc/aets/AS_RECEIVED/rs/%s", rsURI)
-		_, t, bs, _ := tools.HttpGet(url)
-		if bs == nil && t != "" {
-			ctx.JSON(http.StatusOK, FailReturn(t))
-		} else {
-			ctx.JSON(http.StatusOK, SuccessReturn(string(bs)))
-		}
+	if objectUid != "" {
+		addr.Path = fmt.Sprintf("/api/v1/pacs/%s/%s/%s/%s", db, studyUid, seriesUid, objectUid)
+		log("i", "wado->", addr.String())
+		_, bs, _ := tools.HttpGet(addr.String())
+		ctx.Writer.Write(bs)
+		return
+	}
 
-	default:
-		ctx.JSON(http.StatusOK, FailReturn("Unknown type"))
+	if seriesUid != "" {
+		addr.Path = fmt.Sprintf("/api/v1/pacs/%s/%s/%s", db, studyUid, seriesUid)
+	} else if studyUid != "" {
+		addr.Path = fmt.Sprintf("/api/v1/pacs/%s/%s", db, studyUid)
+	} else {
+		addr.Path = fmt.Sprintf("/api/v1/pacs/%s", db)
+	}
+	u := addr.String()
 
+	log("i", "post->", u)
+	resp, _, err := tools.HttpPost(u, nil, "json")
+	//log("i",resp)
+	if resp.Code == 200 {
+		var data []map[string]interface{}
+		bs, _ := json.Marshal(resp.Data)
+		json.Unmarshal(bs, &data)
+		//log("i", "data->", data)
+		value := []string{node}
+		nodedata := map[string]interface{}{"Value": value, "vr": "CS"}
+		for i, ele := range data {
+			ele["nodename"] = nodedata
+			data[i] = ele
+		}
+		ctx.JSON(http.StatusOK, SuccessReturn(data))
+	} else {
+		ctx.JSON(http.StatusOK, FailReturn(resp.Code, resp.Message))
 	}
 }
 
-func GetDatabaseDicomCtWadoGroup(ctx *gin.Context) {
-	var url string
-	pURI := strings.Split(ctx.Request.RequestURI, "/wado/")[1]
-	switch ctx.Param("class") {
-	case "CTA":
-		url = fmt.Sprintf("http://172.16.1.121:8080/dcm4chee-arc/aets/AS_RECEIVED/wado%s", pURI)
-		fmt.Println(url)
+func PacsWado(ctx *gin.Context) {
+	node := global.GetEdaLocalUrl()
+	p := httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.Scheme = node.Scheme
+			req.URL.Host = node.Host
+			req.URL.RawPath = "/api/v1/pacs/wado"
+			req.Host = node.Host
+		},
+	}
+	p.ServeHTTP(ctx.Writer, ctx.Request)
+}
 
-	case "CCTA":
-		url = fmt.Sprintf("http://172.16.1.131:8080/dcm4chee-arc/aets/AS_RECEIVED/wado%s", pURI)
+func PacsGet(c *gin.Context) {
+	module.UpdatePacsNodes()
+	dbs := module.GetPacsDbs()
+	c.JSON(http.StatusOK, SuccessReturn(dbs))
+}
 
-	default:
+func PacsGetNodelist(ctx *gin.Context) {
+	db := ctx.Param("db")
+	nodes := module.GetPacsSupportDbNodeNames(db)
+	ctx.JSON(http.StatusOK, SuccessReturn(nodes))
+}
+
+func PacsSearchNode(ctx *gin.Context) {
+
+	var data module.PacsSearchParams
+	if err := ctx.BindJSON(&data); err != nil {
+		log("e", err.Error())
+		ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
 		return
 	}
 
-	_, _, bs, _ := tools.HttpGet(url)
-	ctx.Writer.Write(bs)
+	data.Db = ctx.Param("db")
+	data.Node = ctx.Param("node")
+	data.StudyInstanceUID = ctx.Param("studyuid")
+	data.SeriesUID = ctx.Param("seriesuid")
+
+	if resp, err := module.NodeSearchPacsDb(data); err != nil {
+		ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+	} else {
+		ctx.JSON(http.StatusOK, SuccessReturn(resp))
+	}
+	return
+}
+
+func DatabaseGetNodeObjectUid(c *gin.Context) {
+	db := c.Param("db")
+	node := c.Param("node")
+
+	data := module.PacsGetWado{
+		SeriesUID: c.Param("seriesuid"),
+		StudyUID:  c.Param("studyuid"),
+		ObjectUID: c.Param("objectuid"),
+	}
+	bs, err := module.NodePacsGetInstanceWado(node, db, data)
+
+	if err != nil {
+		log("e", "wado:", err.Error())
+	}
+	c.Writer.Write(bs)
+	return
 }

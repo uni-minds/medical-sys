@@ -3,7 +3,6 @@ package controller
 import (
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"uni-minds.com/liuxy/medical-sys/global"
 	"uni-minds.com/liuxy/medical-sys/module"
@@ -39,26 +38,26 @@ func RootUserRegisterPost(ctx *gin.Context) {
 	var r clientPushRegister
 	err := ctx.BindJSON(&r)
 	if err != nil {
-		ctx.JSON(http.StatusOK, FailReturn(Ereg01InvalidData))
+		ctx.JSON(http.StatusOK, FailReturn(400, Ereg01InvalidData))
 		return
 	}
 
-	log.Println(color.RedString("注册用户: %v", r))
+	log("i", color.RedString("注册用户: %v", r))
 	if r.Regcode != global.GetUserRegCode() {
-		log.Printf("Register code invalid %s != %s", r.Regcode, global.GetUserRegCode())
-		ctx.JSON(http.StatusOK, FailReturn(Ereg02InvalidRegcode))
+		log("e", "Register code invalid:", r.Regcode, global.GetUserRegCode())
+		ctx.JSON(http.StatusOK, FailReturn(400, Ereg02InvalidRegcode))
 		return
 	}
 
 	uid := module.UserGetUid(r.Username)
 	if uid != 0 {
-		ctx.JSON(http.StatusOK, FailReturn(Ereg03UsernameExisted))
+		ctx.JSON(http.StatusOK, FailReturn(400, Ereg03UsernameExisted))
 		return
 	}
 
 	err = module.UserCreate(r.Username, r.Password, r.Email, r.Realname, "REG")
 	if err != nil {
-		ctx.JSON(http.StatusOK, FailReturn(Ereg00CommonError))
+		ctx.JSON(http.StatusOK, FailReturn(400, Ereg00CommonError))
 	} else {
 		module.UserSetActive(module.UserGetUid(r.Username))
 		ctx.JSON(http.StatusOK, SuccessReturn("/"))

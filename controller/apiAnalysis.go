@@ -3,33 +3,38 @@ package controller
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"net/http"
+	"uni-minds.com/liuxy/medical-sys/module"
 )
-
-type DeepBuild struct {
-	StudiesUID string
-	SeriesUID  string
-	L          DeepBuildPoint
-	R          DeepBuildPoint
-	T          string
-}
-
-type DeepBuildPoint struct {
-	Index int `json:"i"`
-	X     int `json:"x"`
-	Y     int `json:"y"`
-}
 
 func AnalysisCtPost(ctx *gin.Context) {
 	class := ctx.Param("class")
 	mode := ctx.Param("mode")
 	switch class {
-	case "cta":
+	case "ccta":
 		switch mode {
 		case "deepbuild":
-			var data DeepBuild
+			var data module.DeepBuild
 			err := ctx.BindJSON(&data)
-			fmt.Println("Deepbuild:", data, err)
-		}
+			if err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			} else if aid, err := module.AiDemoCctaAnalysisDummy(data); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, "重建失败"))
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn(aid))
+			}
 
+		case "deepsearch":
+			var data module.DeepSearch
+			err := ctx.BindJSON(&data)
+			if err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			} else if sid, err := module.AiDemoCctaSearchDummy(data); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, "检索失败"))
+			} else {
+				//ctx.JSON(http.StatusOK, SuccessReturn(sid))
+				ctx.JSON(http.StatusOK, FailReturn(500, fmt.Sprintf("未检测到匹配项，请扩充特征池：%s", sid)))
+			}
+		}
 	}
 }

@@ -18,6 +18,7 @@ type AppSettings struct {
 	SystemAppPath      string
 	SystemMediaPath    string
 	SystemDBFile       string
+	SystemLogFolder    string
 }
 
 type Version struct {
@@ -33,9 +34,10 @@ func init() {
 		CookieMaxAge:       24 * int(time.Hour.Seconds()),
 		SystemListenPort:   80,
 		SystemUseHttps:     false,
-		SystemAppPath:      "application",
-		SystemMediaPath:    "application/media",
-		SystemDBFile:       "application/database/db.sqlite",
+		SystemAppPath:      "/usr/local/uni-ledger/medical-sys/application",
+		SystemMediaPath:    "/usr/local/uni-ledger/medical-sys/application/media",
+		SystemDBFile:       "/usr/local/uni-ledger/medical-sys/application/database/db.sqlite",
+		SystemLogFolder:    "/usr/local/uni-ledger/medical-sys/log",
 	}
 	loadConfig(configFile)
 }

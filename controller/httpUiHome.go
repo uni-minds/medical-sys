@@ -7,7 +7,7 @@ import (
 	"uni-minds.com/liuxy/medical-sys/module"
 )
 
-func UIHomeGet(ctx *gin.Context) {
+func UiHomeGet(ctx *gin.Context) {
 	_, uid := CookieValidUid(ctx)
 
 	bgContent := fmt.Sprintf("您好，%s。\n"+

@@ -3,7 +3,6 @@ package module
 import (
 	"errors"
 	"fmt"
-	"log"
 	"time"
 	"uni-minds.com/liuxy/medical-sys/database"
 	"uni-minds.com/liuxy/medical-sys/global"
@@ -72,20 +71,20 @@ type LabelReviewInfo struct {
 func LabelGetRealname(i interface{}) (authorName, reviewName string) {
 	mi, err := database.MediaGet(i)
 	if err != nil {
-		log.Println("E LabelGetRealname", err.Error())
+		log("i", "E LabelGetRealname", err.Error())
 		return "", ""
 	}
 	if mi.LabelAuthorUid > 0 {
 		ui, err := database.UserGet(mi.LabelAuthorUid)
 		if err != nil {
-			log.Println("E LabelGetRealneme", err.Error())
+			log("i", "E LabelGetRealneme", err.Error())
 		}
 		authorName = ui.Realname
 	}
 	if mi.LabelReviewUid > 0 {
 		ui, err := database.UserGet(mi.LabelReviewUid)
 		if err != nil {
-			log.Println("E LabelGetRealneme", err.Error())
+			log("i", "E LabelGetRealneme", err.Error())
 		}
 		reviewName = ui.Realname
 	}
@@ -149,7 +148,7 @@ func LabelGetSummary(i interface{}) (summary LabelSummaryInfo, err error) {
 func LabelGetJson(i interface{}) string {
 	li, err := database.LabelGet(i)
 	if err != nil {
-		log.Println("E LabelGetJson", err.Error())
+		log("i", "E LabelGetJson", err.Error())
 		return ""
 	} else {
 		return li.Data
@@ -249,7 +248,7 @@ func LabelUpdateReview(jstr string, mediaHash string, uid int) error {
 func LabelSubmitReview(mediaHash string, uid int, result string) error {
 	li, err := database.LabelGet(mediaHash)
 	if err != nil {
-		log.Println("E1:", err.Error())
+		log("i", "E1:", err.Error())
 		return err
 	}
 
@@ -278,7 +277,7 @@ func LabelSubmitReview(mediaHash string, uid int, result string) error {
 	}
 	err = database.LabelUpdate(li)
 	if err != nil {
-		log.Println("E2:", err.Error())
+		log("i", "E2:", err.Error())
 	}
 	return err
 }
@@ -286,7 +285,7 @@ func LabelSubmitReview(mediaHash string, uid int, result string) error {
 //func LabelGetSummary(i interface{}, uid int) (realname, activeText, tips string, err error) {
 //	li, err := database.LabelGet(i)
 //	if err != nil {
-//		log.Println("LabelGetSummary E", err.Error())
+//		log("i","LabelGetSummary E", err.Error())
 //	}
 //	realname = LabelGetRealname(i)
 //	if li.Uid == i {

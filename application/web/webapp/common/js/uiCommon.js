@@ -1,11 +1,17 @@
-$(function(){
-    console.log("Copyright @ Uni-Minds 2019-2020");
-    function uiCopyright() {
-        $.get("/api/v1/raw?action=getversion", result => {
-            $(".main-footer").html(result);
-        })
-    }
+$(function() {
+    class Copyright {
+        constructor() {
+            console.log("Copyright @ Uni-Minds 2019-2020");
+        }
 
+        init() {
+            $.get("/api/v1/raw?action=getversion").done(resp => {
+                if (resp.code === 200) {
+                    $(".main-footer").html(resp.data);
+                }
+            })
+        }
+    }
     class Menu {
         constructor(props) {
             this.root = $(".mt-2 .nav");
@@ -36,7 +42,7 @@ $(function(){
         loadData(menuJson) {
             for (let i = 0; i < menuJson.length; i++) {
                 let menu = menuJson[i];
-                if (menu.child && menu.child.length>0) {
+                if (menu.child && menu.child.length > 0) {
                     let parent = this.parent(menu.name, menu.icon);
                     let tree = $('<ul class="nav nav-treeview"></ul>');
                     parent.append(tree);
@@ -94,16 +100,18 @@ $(function(){
                 this.activeRef.removeClass("active")
             }
             let obj = $(`#${id}`);
-            obj.addClass("active");
-            let objParent = obj.parents()[2];
-            if ($.nodeName(objParent, "li")) {
-                $(objParent).addClass("menu-open");
+            if (obj.length) {
+                obj.addClass("active");
+                let objParent = obj.parents()[2];
+                if ($.nodeName(objParent, "li")) {
+                    $(objParent).addClass("menu-open");
+                }
+                this.activeRef = obj
             }
-            this.activeRef = obj
         }
     }
-
-    let menu =new Menu()
+    let menu = new Menu()
+    let cr = new Copyright()
     menu.init()
-    uiCopyright();
+    cr.init()
 });

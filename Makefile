@@ -1,39 +1,34 @@
-# Go parameters
-COMPILE_VER=1.0
-COMPILE_REV= $(shell git rev-parse --short HEAD)
-COMPILE_TIME = $(shell date +"%Y-%m-%d %H:%M:%S")
+COMPILE_VER=2.1.2
 
-BUILD=build
-INSTALL=/usr/local/medical-sys
-PWD=$(shell pwd)
-GOBUILD=/usr/local/go/bin/go build
-TAR_MAIN=build/medical-sys
-
-.PHONY: build
-
-build:
-	export GOPROXY=https://goproxy.cn,direct
-	$(GOBUILD) -o $(TAR_MAIN) -v -ldflags "-X 'main._BUILD_TIME_=$(COMPILE_TIME)' -X 'main._BUILD_REV_=$(COMPILE_REV)' -X 'main._BUILD_VER_=$(COMPILE_VER)'" main.go
-	$(GOBUILD) -o build/medical-tools main_tools.go
+GO := /usr/local/go/bin/go
+GOBUILD = ${GO} build
+FLAGS = "-X 'main._BUILD_TIME_=$(shell date +"%Y-%m-%d %H:%M:%S")' -X 'main._BUILD_VER_=$(COMPILE_VER)' -X 'main._BUILD_REV_=$(shell git rev-parse --short HEAD)'"
 
 clean:
-	rm $(TAR_MAIN) build/medical-tools
+	rm -rf build/
 
-install: $(TAR_MAIN)
-	mkdir -p $(INSTALL)
-	ln -s $(PWD)/application $(INSTALL)/application
-	cp $(TAR_MAIN) $(INSTALL)
-	cp build/medical-tools $(INSTALL)
-	cp build/medical-sys.service /lib/systemd/system/
+build/medical_sys: main.go
+	${GOBUILD} -o $@ -ldflags ${FLAGS} $^
+
+build/medical_sys_ctl: main_tools.go
+	${GOBUILD} -o $@ $^
+
+run:build/medical_sys
+	$^ -v -debug
+
+build:build/medical_sys build/medical_sys_ctl
+
+install: build
+	mkdir -p /usr/local/uni-ledger/medical-sys
+	if [ ! -d /usr/local/uni-ledger/medical-sys/application ];\
+	then ln -s $(shell pwd)/application /usr/local/uni-ledger/medical-sys/;\
+	fi
+	cp build/* /usr/bin
+	cp install/medical-sys-base/lib/systemd/system/medical-sys.service /lib/systemd/system/
 	systemctl daemon-reload
-	echo systemctl enable medical-sys
+	systemctl enable medical-sys
 
-upgrade: $(TAR_MAIN)
-	mv $(INSTALL)/medical-sys $(INSTALL)/medical-sys.del
-	cp $(TAR_MAIN) $(INSTALL)
-	systemctl restart medical-sys
-	rm $(INSTALL)/medical-sys.del
-
-
-run:$(TAR_MAIN)
-	$(TAR_MAIN)
+upgrade: build
+	systemctl stop medical-sys
+	cp build/* /usr/bin
+	systemctl start medical-sys

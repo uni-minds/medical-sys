@@ -3,7 +3,6 @@ package controller
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -86,7 +85,7 @@ func MediaGet(ctx *gin.Context) {
 			for _, mid := range mids {
 				mediaSummary, err := module.MediaGetSummary(mid)
 				if err != nil {
-					log.Println("E get mediaSummary", mid, err.Error())
+					log("e", "E get mediaSummary", mid, err.Error())
 					continue
 				}
 
@@ -121,7 +120,7 @@ func MediaGet(ctx *gin.Context) {
 		}
 		callback.Data = mdata
 		//jc, _ := json.Marshal(callback)
-		//ctx.JSON(http.StatusOK, SuccessReturn(string(jc)))
+		//ctx.JSON(http.StatusOK, tools.SuccessReturn(string(jc)))
 		ctx.JSON(http.StatusOK, SuccessReturn(callback))
 		return
 
@@ -176,7 +175,7 @@ func MediaGet(ctx *gin.Context) {
 
 		status, err := manager.MediaAccessGetLock(mediaHash)
 		if err != nil {
-			ctx.JSON(http.StatusOK, FailReturn(status))
+			ctx.JSON(http.StatusOK, FailReturn(400, status))
 		} else {
 			ctx.JSON(http.StatusOK, SuccessReturn(status))
 		}
@@ -192,7 +191,7 @@ func MediaGet(ctx *gin.Context) {
 		case "author", "review":
 			status, err := manager.MediaAccessSetLock(mediaHash, uid, tp)
 			if err != nil {
-				ctx.JSON(http.StatusOK, FailReturn(status))
+				ctx.JSON(http.StatusOK, FailReturn(400, status))
 			} else {
 				ctx.JSON(http.StatusOK, SuccessReturn(status))
 			}
@@ -208,7 +207,7 @@ func MediaGet(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, SuccessReturn("OK"))
 
 	default:
-		ctx.JSON(http.StatusOK, FailReturn(action))
+		ctx.JSON(http.StatusOK, FailReturn(400, action))
 
 	}
 }
