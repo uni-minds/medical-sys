@@ -8,11 +8,9 @@ package controller
 
 import (
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/global"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"path"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 var menudata []global.MenuStruct
@@ -48,12 +46,4 @@ func RawDataGet(ctx *gin.Context) {
 
 func getMenuData() []global.MenuStruct {
 	return menudata
-}
-
-func init() {
-	var menuconfig = path.Join(global.GetAppSettings().SystemAppPath, "menu.yaml")
-	if err := tools.LoadYaml(menuconfig, &menudata); err != nil {
-		menudata = global.DefaultMenuData()
-		tools.SaveYaml(menuconfig, menudata)
-	}
 }

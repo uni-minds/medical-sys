@@ -7,9 +7,11 @@
 package controller
 
 import (
+	"encoding/json"
+	"gitee.com/uni-minds/medical-sys/module"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 type AlgoParamsData struct {
@@ -30,10 +32,21 @@ func AiAlgoGet(ctx *gin.Context) {
 		switch class {
 		case "ccta":
 			result := module.AlgoCctaGetFeatureResult(aid, part)
+			bs, _ := json.Marshal(result)
+			gzResult, err := tools.GzipToBase64(bs)
+
+			if err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, "CCTA Result failed"))
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn(gzResult))
+			}
+
+		case "cta":
+			result := module.AlgoCctaGetFeatureResult(aid, part)
 			if result != nil {
 				ctx.JSON(http.StatusOK, SuccessReturn(result))
 			} else {
-				ctx.JSON(http.StatusOK, FailReturn(400, "CCTA Result failed"))
+				ctx.JSON(http.StatusOK, FailReturn(400, "CTA Result failed"))
 			}
 		}
 	}

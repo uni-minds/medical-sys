@@ -10,6 +10,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/database"
+	"gitee.com/uni-minds/medical-sys/global"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/Unknwon/goconfig"
 	"os"
 	"path"
@@ -17,9 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"uni-minds.com/liuxy/medical-sys/database"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type MediaSummaryInfo struct {
@@ -47,6 +47,27 @@ type MediaImportJson struct {
 }
 
 //生成mid的标注作者和审核摘要信息
+
+func InstanceGetSummary(instanceId string) (summary MediaSummaryInfo, err error) {
+	ps := database.BridgeGetPacsServerHandler()
+	info, err := ps.FindInstanceByIdLocal(instanceId)
+	if err != nil {
+		return summary, err
+	}
+
+	summary.Hash = info.InstanceId
+	summary.DisplayName = info.InstanceId
+	summary.Memo = info.LabelMemo
+	summary.Views = info.LabelView
+
+	summary.Duration = info.Duration
+	summary.Frames = info.Frames
+	summary.Width = info.MediaWidth
+	summary.Height = info.MediaHeight
+
+	return summary, nil
+}
+
 func MediaGetSummary(mid int) (summary MediaSummaryInfo, err error) {
 	mi, err := database.MediaGet(mid)
 	if err != nil {
@@ -58,46 +79,6 @@ func MediaGetSummary(mid int) (summary MediaSummaryInfo, err error) {
 	summary.Memo = mi.Memo
 	summary.Views = mi.IncludeViews
 
-	//切面再识别
-	//switch mi.IncludeViews {
-	//case "", "null", "[]":
-	//	view := MediaAnalysisView(mi.DisplayName)
-	//	summary.Views = view
-	//
-	//	if view != "" {
-	//		database.MediaUpdateViews(mid, view)
-	//	}
-	//
-	//default:
-	//	view := mi.IncludeViews
-	//	fmt.Println("analysis:", mi.IncludeViews)
-	//	if view[0] == '[' {
-	//		if strings.Contains(view, ",") {
-	//			fmt.Println("cannot convert:", mi.Mid)
-	//		} else {
-	//			view = view[2 : len(view)-2]
-	//			fmt.Println("->", view)
-	//			database.MediaUpdateViews(mid, view)
-	//		}
-	//	}
-	//	summary.Views = view
-	//}
-	// 关键字再识别
-	//switch mi.Keywords {
-	//case "", "null", "[]":
-	//	keywords := MediaAnalysisKeywords(mi.DisplayName)
-	//	if len(keywords) > 0 {
-	//		_ = database.MediaSetKeywords(mid, keywords)
-	//		jb, _ := json.Marshal(keywords)
-	//		summary.Keywords = string(jb)
-	//	} else {
-	//		summary.Keywords = "[]"
-	//	}
-	//
-	//default:
-	//	summary.Keywords = mi.Keywords
-	//}
-	// 媒体信息再识别
 	summary.Duration = mi.Duration
 	summary.Frames = mi.Frames
 	summary.Width = mi.Width
@@ -130,94 +111,96 @@ func MediaGetMid(hash string) int {
 
 /*
 //用于JsGrid生成标注作者按钮
-func MediaGetLabelAuthorsSummary(uids, lids []int) []MediaSummaryAuthorInfo {
-	authors := make([]MediaSummaryAuthorInfo, 0)
-	if len(uids) > 0 {
-		for i, uid := range uids {
-			li, _ := database.LabelGet(lids[i])
-			updateTime := ""
-			if li.ModifyTime != "" {
-				updateTime = li.ModifyTime
-			} else {
-				updateTime = li.CreateTime
-			}
 
-			var labelInfoDataAuthor database.LabelInfoAuthorData
-			if li.Type != global.LabelTypeAuthor {
-				log("i","error label_author wrong type of lid", li.Lid)
-				continue
-			}
-
-			if len(li.Data) > 10 {
-				json.Unmarshal([]byte(li.Data), &labelInfoDataAuthor)
-				if labelInfoDataAuthor.Json == "" {
-					labelInfoDataAuthor.Json = li.Data
-					database.LabelUpdateLabelData(li.Lid, li.Uid, li.Frames, li.Counts, labelInfoDataAuthor, li.Progress)
-					li, _ = database.LabelGet(li.Lid)
-				}
-			}
-			authors = append(authors, MediaSummaryAuthorInfo{
-				Realname:   UserGetRealname(uid),
-				Frames:     li.Frames,
-				Counts:     li.Counts,
-				UpdateTime: updateTime,
-				Progress:   li.Progress,
-				Hash:       li.Hash,
-				Memo:       li.Memo,
-			})
-		}
-	}
-	return authors
-}
-
-//用于JsGrid生成标注审核按钮
-func MediaGetLabelReviewersSummary(uids, lids []int) []MediaSummaryReviewInfo {
-	reviews := make([]MediaSummaryReviewInfo, 0)
-	if len(uids) > 0 {
-		for i, uid := range uids {
-			li, err := database.LabelGet(lids[i])
-			if err != nil {
-				log("i",err.Error())
-			}
-			updateTime := ""
-			if li.ModifyTime != "" {
-				updateTime = li.ModifyTime
-			} else {
-				updateTime = li.CreateTime
-			}
-
-			var labelInfoDataReview database.LabelInfoReviewerData
-			if li.Type != global.LabelTypeReview {
-				log("i","error label_review wrong type for lid", li.Lid)
-				continue
-			}
-
-			var tips = "Pure"
-			if len(li.Data) > 10 {
-				json.Unmarshal([]byte(li.Data), &labelInfoDataReview)
-				if labelInfoDataReview.Json == "" {
-					labelInfoDataReview.Json = li.Data
-					database.LabelUpdateLabelData(li.Lid, li.Uid, li.Frames, li.Counts, labelInfoDataReview, li.Progress)
+	func MediaGetLabelAuthorsSummary(uids, lids []int) []MediaSummaryAuthorInfo {
+		authors := make([]MediaSummaryAuthorInfo, 0)
+		if len(uids) > 0 {
+			for i, uid := range uids {
+				li, _ := database.LabelGet(lids[i])
+				updateTime := ""
+				if li.ModifyTime != "" {
+					updateTime = li.ModifyTime
 				} else {
-					if labelInfoDataReview.BasedAuthor > 0 {
-						tips = fmt.Sprintf("审阅基于[%s]@%s",
-							UserGetRealname(labelInfoDataReview.BasedAuthor), labelInfoDataReview.BasedTime)
+					updateTime = li.CreateTime
+				}
+
+				var labelInfoDataAuthor database.LabelInfoAuthorData
+				if li.Type != global.LabelTypeAuthor {
+					log("i","error label_author wrong type of lid", li.Lid)
+					continue
+				}
+
+				if len(li.Data) > 10 {
+					json.Unmarshal([]byte(li.Data), &labelInfoDataAuthor)
+					if labelInfoDataAuthor.Json == "" {
+						labelInfoDataAuthor.Json = li.Data
+						database.LabelUpdateLabelData(li.Lid, li.Uid, li.Frames, li.Counts, labelInfoDataAuthor, li.Progress)
+						li, _ = database.LabelGet(li.Lid)
 					}
 				}
+				authors = append(authors, MediaSummaryAuthorInfo{
+					Realname:   UserGetRealname(uid),
+					Frames:     li.Frames,
+					Counts:     li.Counts,
+					UpdateTime: updateTime,
+					Progress:   li.Progress,
+					Hash:       li.Hash,
+					Memo:       li.Memo,
+				})
 			}
-
-			reviews = append(reviews, MediaSummaryReviewInfo{
-				Realname:   UserGetRealname(uid),
-				UpdateTime: updateTime,
-				Progress:   li.Progress,
-				Tips:       tips,
-				Hash:       li.Hash,
-				Memo:       li.Memo,
-			})
 		}
+		return authors
 	}
-	return reviews
-}
+
+//用于JsGrid生成标注审核按钮
+
+	func MediaGetLabelReviewersSummary(uids, lids []int) []MediaSummaryReviewInfo {
+		reviews := make([]MediaSummaryReviewInfo, 0)
+		if len(uids) > 0 {
+			for i, uid := range uids {
+				li, err := database.LabelGet(lids[i])
+				if err != nil {
+					log("i",err.Error())
+				}
+				updateTime := ""
+				if li.ModifyTime != "" {
+					updateTime = li.ModifyTime
+				} else {
+					updateTime = li.CreateTime
+				}
+
+				var labelInfoDataReview database.LabelInfoReviewerData
+				if li.Type != global.LabelTypeReview {
+					log("i","error label_review wrong type for lid", li.Lid)
+					continue
+				}
+
+				var tips = "Pure"
+				if len(li.Data) > 10 {
+					json.Unmarshal([]byte(li.Data), &labelInfoDataReview)
+					if labelInfoDataReview.Json == "" {
+						labelInfoDataReview.Json = li.Data
+						database.LabelUpdateLabelData(li.Lid, li.Uid, li.Frames, li.Counts, labelInfoDataReview, li.Progress)
+					} else {
+						if labelInfoDataReview.BasedAuthor > 0 {
+							tips = fmt.Sprintf("审阅基于[%s]@%s",
+								UserGetRealname(labelInfoDataReview.BasedAuthor), labelInfoDataReview.BasedTime)
+						}
+					}
+				}
+
+				reviews = append(reviews, MediaSummaryReviewInfo{
+					Realname:   UserGetRealname(uid),
+					UpdateTime: updateTime,
+					Progress:   li.Progress,
+					Tips:       tips,
+					Hash:       li.Hash,
+					Memo:       li.Memo,
+				})
+			}
+		}
+		return reviews
+	}
 */
 func MediaImport(input, displayName, memo string, ownerUid int) (mi database.MediaInfo, err error) {
 	filefull := path.Base(input)
@@ -381,6 +364,7 @@ func MediaImportUsVideoOgv(srcFile, destFolder, dispname, view, descript, fcode,
 	_ = database.MediaUpdateDetail(mid, detail)
 	return mid, nil
 }
+
 func MediaImportFromJson(uid int, srcFolder, destFolder string, data []MediaImportJson) error {
 	totalLen := len(data)
 	for i, v := range data {
@@ -415,7 +399,7 @@ func MediaImportFromJson(uid int, srcFolder, destFolder string, data []MediaImpo
 				gid = gi.Gid
 			}
 		}
-		database.GroupAddMedia(gid, mid)
+		database.GroupAddContain(gid, mid)
 	}
 	return nil
 }
@@ -428,6 +412,22 @@ func MediaGetRealpath(hash string, uid int) string {
 		return mi.Path
 	}
 }
+
+func InstanceGetVideo(instanceId string, uid int) ([]byte, error) {
+	ps := database.BridgeGetPacsServerHandler()
+	//pi, err := ps.FindInstanceById(instanceId)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	bs, _, err := ps.InstanceMediaGet(instanceId, "ogv")
+	if err != nil {
+		return nil, err
+	} else {
+		return bs, nil
+	}
+}
+
 func MediaUpdateLabel(mid, uid, lid int, labeltype string) error {
 	mi, err := database.MediaGet(mid)
 	if err != nil {
@@ -494,6 +494,7 @@ func MediaAnalysisKeywords(dispname string) []string {
 	}
 	return keywords
 }
+
 func MediaAutoGenFcode(dispname string) string {
 	for _, v := range strings.Split(dispname, " ") {
 		for _, w := range strings.Split(v, "-") {
@@ -508,6 +509,7 @@ func MediaAutoGenFcode(dispname string) string {
 	}
 	return ""
 }
+
 func MediaDeleteLabelAll(mid int) error {
 	mi, err := database.MediaGet(mid)
 	if err != nil {
@@ -540,6 +542,7 @@ func MediaSetLabelAuthorJson(mid int, jsonstr string, authorUid int) error {
 
 	return database.MediaUpdateLabelAuthorUidLid(mid, authorUid, lid)
 }
+
 func MediaGetAll() map[int][]string {
 	mis, _ := database.MediaGetAll()
 

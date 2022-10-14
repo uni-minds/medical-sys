@@ -8,7 +8,7 @@ package module
 
 import (
 	"errors"
-	"uni-minds.com/liuxy/medical-sys/database"
+	"gitee.com/uni-minds/medical-sys/database"
 )
 
 const (
@@ -20,10 +20,12 @@ const (
 	GroupLevelMaster     = 4
 )
 
-func GroupCreate(groupname, displayname, memo string) error {
+func GroupCreate(groupname, displayname, groupType, containType, memo string) error {
 	gi := database.GroupInfo{
 		GroupName:   groupname,
 		DisplayName: displayname,
+		GroupType:   groupType,
+		ContainType: containType,
 		Memo:        memo,
 	}
 	_, err := database.GroupCreate(gi)
@@ -36,6 +38,15 @@ func GroupGetGid(groupname string) int {
 		return 0
 	}
 	return gi.Gid
+}
+
+func GroupGetType(gid int) string {
+	gi, err := database.GroupGet(gid)
+	if err != nil {
+		return ""
+	} else {
+		return gi.GroupType
+	}
 }
 func GroupGetGroupname(gid int) string {
 	gi, err := database.GroupGet(gid)
@@ -52,7 +63,14 @@ func GroupGetDisplayname(gid int) string {
 	return gi.DisplayName
 }
 func GroupGetMedia(gid int) (media []int) {
-	media, err := database.GroupGetMedia(gid)
+	media, err := database.GroupGetMediaId(gid)
+	if err != nil {
+		return nil
+	}
+	return
+}
+func GroupGetDicom(gid int) (studiesIds []string) {
+	studiesIds, _, err := database.GroupGetContains(gid)
 	if err != nil {
 		return nil
 	}
@@ -79,18 +97,27 @@ func GroupGetUserLevel(gid, uid int) (level int) {
 }
 
 func GroupUserAdd(gid int, uid int, role string) error {
-	permissions := database.UserPermissions{}
-	switch role {
-	case "guest":
-		permissions.ListMedia = true
-	case "member":
-		permissions.ListLabels = true
-	case "leader":
-		permissions.ManageReviews = true
-	case "master":
-		permissions.ManageUsers = true
+	p := database.UserPermissions{}
+
+	p.ListMedia = true
+
+	if role == "member" || role == "leader" || role == "master" {
+		p.ListLabels = true
+		p.ListUsers = true
 	}
-	return database.GroupAddUser(gid, uid, permissions)
+
+	if role == "leader" || role == "master" {
+		p.ManageReviews = true
+		p.ListReviews = true
+	}
+
+	if role == "master" {
+		p.ManageLabels = true
+		p.ManageReviews = true
+		p.ManageUsers = true
+	}
+
+	return database.GroupAddUser(gid, uid, p)
 }
 func GroupUserAddFrendly(groupname, username, role string) error {
 	gid := GroupGetGid(groupname)

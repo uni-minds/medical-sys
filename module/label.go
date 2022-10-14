@@ -9,9 +9,9 @@ package module
 import (
 	"errors"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/database"
+	"gitee.com/uni-minds/medical-sys/global"
 	"time"
-	"uni-minds.com/liuxy/medical-sys/database"
-	"uni-minds.com/liuxy/medical-sys/global"
 )
 
 type LabelSummaryInfo struct {
@@ -73,6 +73,13 @@ type LabelReviewInfo struct {
 //	}
 //}
 
+const ProgFree = "free"
+const ProgUsing = "using"
+const ProgSubmit = "submit"
+const ProgAutherReject = "a_reject"
+const ProgReviewWarn = "r_warning"
+const ProgReviewConfirm = "r_confirm"
+
 func LabelGetRealname(i interface{}) (authorName, reviewName string) {
 	mi, err := database.MediaGet(i)
 	if err != nil {
@@ -96,15 +103,7 @@ func LabelGetRealname(i interface{}) (authorName, reviewName string) {
 	return authorName, reviewName
 }
 
-func LabelGetSummary(i interface{}) (summary LabelSummaryInfo, err error) {
-
-	const prog_free = "free"
-	const prog_using = "using"
-	const prog_submit = "submit"
-	const prog_author_reject = "a_reject"
-	const prog_review_warning = "r_warning"
-	const prog_review_confirm = "r_confirm"
-
+func LabelGetSummary(i interface{}) (summary LabelSummaryInfo, authorUid, reviewUid int, err error) {
 	li, err := database.LabelGet(i)
 	if err != nil {
 		return
@@ -112,44 +111,49 @@ func LabelGetSummary(i interface{}) (summary LabelSummaryInfo, err error) {
 	switch li.Progress {
 	case 1:
 		// 标注中
-		summary.AuthorProgress = prog_using
+		summary.AuthorProgress = ProgUsing
 		summary.ReviewProgress = ""
 	case 2:
 		// 标注完成
-		summary.AuthorProgress = prog_submit
-		summary.ReviewProgress = prog_free
+		summary.AuthorProgress = ProgSubmit
+		summary.ReviewProgress = ProgFree
 	case 3:
 		// 审阅中
-		summary.AuthorProgress = prog_submit
-		summary.ReviewProgress = prog_using
+		summary.AuthorProgress = ProgSubmit
+		summary.ReviewProgress = ProgUsing
 	case 4:
 		// 审阅完成，拒绝
-		summary.AuthorProgress = prog_author_reject
-		summary.ReviewProgress = prog_submit
+		summary.AuthorProgress = ProgAutherReject
+		summary.ReviewProgress = ProgSubmit
 	case 5:
 		// 标注修改中
-		summary.AuthorProgress = prog_using
-		summary.ReviewProgress = prog_submit
+		summary.AuthorProgress = ProgUsing
+		summary.ReviewProgress = ProgSubmit
 	case 6:
 		// 标注完成修改，提交审阅
-		summary.AuthorProgress = prog_submit
-		summary.ReviewProgress = prog_review_warning
+		summary.AuthorProgress = ProgSubmit
+		summary.ReviewProgress = ProgReviewWarn
 	case 7:
 		// 审阅接受，最终状态
-		summary.AuthorProgress = prog_submit
-		summary.ReviewProgress = prog_review_confirm
+		summary.AuthorProgress = ProgSubmit
+		summary.ReviewProgress = ProgReviewConfirm
 	default:
-		summary.AuthorProgress = prog_free
+		summary.AuthorProgress = ProgFree
 		summary.ReviewProgress = ""
 	}
-	if li.AuthorUid > 0 {
-		summary.AuthorRealname = UserGetRealname(li.AuthorUid)
+
+	authorUid = li.AuthorUid
+	reviewUid = li.ReviewUid
+
+	if authorUid > 0 {
+		summary.AuthorRealname = UserGetRealname(authorUid)
 	}
-	if li.ReviewUid > 0 {
-		summary.ReviewRealname = UserGetRealname(li.ReviewUid)
+	if reviewUid > 0 {
+		summary.ReviewRealname = UserGetRealname(reviewUid)
 	}
 	return
 }
+
 func LabelGetJson(i interface{}) string {
 	li, err := database.LabelGet(i)
 	if err != nil {
@@ -157,6 +161,40 @@ func LabelGetJson(i interface{}) string {
 		return ""
 	} else {
 		return li.Data
+	}
+}
+
+func LabelGetMemo(i interface{}) string {
+	li, err := database.LabelGet(i)
+	if err != nil {
+		return ""
+	} else {
+		return li.Memo
+	}
+}
+
+func LabelUpdateMemo(i interface{}, uid int, memo string) error {
+	li, err := database.LabelGet(i)
+	li.Memo = memo
+	if err != nil {
+		if memo != "" {
+			switch i.(type) {
+			case string:
+				li.AuthorUid = uid
+				li.Progress = 1
+				li.MediaHash = i.(string)
+				li.Data = "{}"
+				log("i", "user create new label by set memo", uid, memo)
+				return database.LabelCreate(li)
+			default:
+				return errors.New("unknown label id type (not string)")
+			}
+		} else {
+			// 不存在对应记录且上传memo为空
+			return nil
+		}
+	} else {
+		return database.LabelUpdateMemo(i, memo)
 	}
 }
 func LabelUpdateAuthor(jstr string, mediaHash string, uid int) error {
@@ -213,20 +251,21 @@ func LabelSubmitAuthor(mediaHash string, uid int) error {
 	case 0, 1: // ing,NaN
 		li.Progress = 2
 	case 2, 6:
-		return errors.New("status conflict: submitted")
+		return errors.New("标注状态冲突：实例已提交审阅")
 	case 3:
-		return errors.New("status conflict: under reviewing")
+		return errors.New("标注状态冲突：正在审阅中")
 	case 4, 5: // ing,fin
 		li.Progress = 6
 	case 7:
-		return errors.New("status conflict: reviewed")
+		return errors.New("标注状态冲突：实例已完成审阅")
 	default:
-		return errors.New("status error")
+		return errors.New("标注状态异常")
 	}
 
 	li.TimeAuthorSubmit = time.Now().Format(global.TimeFormat)
 	return database.LabelUpdate(li)
 }
+
 func LabelUpdateReview(jstr string, mediaHash string, uid int) error {
 	li, err := database.LabelGet(mediaHash)
 	if err != nil {
@@ -250,6 +289,20 @@ func LabelUpdateReview(jstr string, mediaHash string, uid int) error {
 		return database.LabelUpdate(li)
 	}
 }
+
+func LabelRevokeReview(mediaHash string, uid int, force bool) error {
+	li, err := database.LabelGet(mediaHash)
+	if err != nil {
+		return errors.New("无原始数据，无法审阅")
+
+	} else if force != true && li.ReviewUid != uid {
+		return errors.New("非原始审批者，请联系管理员提权")
+	} else {
+		// 存在标注信息，验证是否允许修改
+		data := map[string]interface{}{"reviewUid": 0, "progress": 2, "timeReviewSubmit": time.Now().Format(global.TimeFormat)}
+		return database.LabelUpdateManual(mediaHash, data)
+	}
+}
 func LabelSubmitReview(mediaHash string, uid int, result string) error {
 	li, err := database.LabelGet(mediaHash)
 	if err != nil {
@@ -258,7 +311,7 @@ func LabelSubmitReview(mediaHash string, uid int, result string) error {
 	}
 
 	if li.ReviewUid != uid && li.ReviewUid != 0 {
-		return errors.New("非原始审阅者，禁止提交")
+		return errors.New(fmt.Sprintf("非原始审阅者(%s)，禁止提交，", UserGetRealname(li.ReviewUid)))
 	}
 	li.ReviewUid = uid
 
@@ -285,6 +338,10 @@ func LabelSubmitReview(mediaHash string, uid int, result string) error {
 		log("i", "E2:", err.Error())
 	}
 	return err
+}
+
+func LabelDelete(mediaIndex string) error {
+	return database.LabelDelete(mediaIndex)
 }
 
 //func LabelGetSummary(i interface{}, uid int) (realname, activeText, tips string, err error) {

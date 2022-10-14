@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,13 +8,13 @@
   <title>MediSys | CCTA 分析报告</title>
 
   <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="../../plugins/fontawesome-free/css/all.min.css">
+  <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
   <!-- IonIcons -->
   <link rel="stylesheet" href="http://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
   <!-- Theme style -->
-  <link rel="stylesheet" href="../../dist/css/adminlte.min.css">
+  <link rel="stylesheet" href="/dist/css/adminlte.min.css">
   <!-- Google Font: Source Sans Pro -->
-  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+  <link href="https://fonts.font.im/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
 </head>
 <!--
 BODY TAG OPTIONS:
@@ -52,7 +52,7 @@ to get the desired effect
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="/" class="brand-link">
-      <img src="../../dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3"
+      <img src="/dist/img/AdminLTELogo.png" alt="AdminLTE Logo" class="brand-image img-circle elevation-3"
            style="opacity: .8">
       <span class="brand-text font-weight-heavy"><b>Medi-</b>Sys</span>
     </a>
@@ -62,7 +62,7 @@ to get the desired effect
       <!-- Sidebar user panel (optional) -->
       <div class="user-panel mt-3 pb-3 mb-3 d-flex">
         <div class="image">
-          <img src="../../dist/img/avatar3.png" class="img-circle elevation-2" alt="User Image">
+          <img src="/dist/img/avatar3.png" class="img-circle elevation-2" alt="User Image">
         </div>
         <div class="info">
           <a href="#" class="d-block">User</a>
@@ -99,8 +99,8 @@ to get the desired effect
                 <button type="button" class="btn btn-tool" data-card-widget="remove"><i class="fas fa-times"></i></button>
               </div>
             </div>
-            <div class="card-body chart-responsive">
-                <iframe src="analysis?type=deepbuild&mode=ccta3d" height="700px" width="100%"></iframe>
+            <div id="ccta3d" class="card-body chart-responsive">
+                <iframe id="ccta3diframe" src="" height="700px" width="100%"></iframe>
             </div>
           </div>
         </div>
@@ -197,21 +197,24 @@ to get the desired effect
 
 <!-- REQUIRED SCRIPTS -->
 <!-- jQuery -->
-<script src="../../plugins/jquery/jquery.min.js"></script>
+<script src="/plugins/jquery/jquery.min.js"></script>
 <!-- jQuery UI -->
-<script src="../../plugins/jquery-ui/jquery-ui.min.js"></script>
+<script src="/plugins/jquery-ui/jquery-ui.min.js"></script>
 <!-- Bootstrap -->
-<script src="../../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="../../plugins/jquery-mousewheel/jquery.mousewheel.js"></script>
+<script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/plugins/jquery-mousewheel/jquery.mousewheel.js"></script>
 <!-- FLOT CHARTS -->
-<script src="../../plugins/flot/jquery.flot.js"></script>
+<script src="/plugins/flot/jquery.flot.js"></script>
 <!-- FLOT RESIZE PLUGIN - allows the chart to redraw when the window is resized -->
-<script src="../../plugins/flot-old/jquery.flot.resize.min.js"></script>
+<!--<script src="/plugins/flot-old/jquery.flot.resize.min.js"></script>-->
+<script src="/plugins/flot/plugins/jquery.flot.resize.js"></script>
 <!-- AdminLTE -->
-<script src="../../dist/js/adminlte.js"></script>
+<script src="/dist/js/adminlte.js"></script>
 
-{{/*<script src="../../webapp/common/js/uiCommon.js"></script>*/}}
-{{/*<script src="../../webapp/ai/analysis/js/mychart.js"></script>*/}}
+<script src="/plugins-custom/pako/pako.min.js"></script>
+<script src="/webapp/common/js/uiCommon.js"></script>
+<script src="/webapp/common/js/tools.js"></script>
+{{/*<script src="/webapp/ai/analysis/js/mychart.js"></script>*/}}
 
 <script>
   let ccta_outputdir="/webapp/temp/ccta/json/";
@@ -304,63 +307,71 @@ to get the desired effect
     }
   }
 
-  $.get("/api/v1/ai/ct/ccta/algo1/aid1").fail(function(resp){
+  let u = analysisURL(window.location.href)
+  let pipe = u['pipe']
+
+  $.get(`/api/v1/ai/ct/ccta/algo1/${pipe}`).fail(function(resp){
     console.log("F",resp)
-  }).done(function(resp) {
-    let lad1=new plot("lad_1")
-    lad1.insertLine(JSON.parse(resp.data.lad_ctmax),"max")
-    lad1.insertLine(JSON.parse(resp.data.lad_ctmin),"min")
-    lad1.insertLine(JSON.parse(resp.data.lad_ctavg),"avg")
+  }).done((resp)=> {
+    // show 3d model
+    let u = `analysis?type=deepbuild&mode=ccta3d&pipe=${pipe}`
+    console.log("ccta3d",u)
+    $("#ccta3diframe").attr("src",u)
+
+    let data=JSON.parse(unGzip(resp.data))
+
+    let lad1 = new plot("lad_1")
+    lad1.insertLine(JSON.parse(data.lad_ctmax), "max")
+    lad1.insertLine(JSON.parse(data.lad_ctmin), "min")
+    lad1.insertLine(JSON.parse(data.lad_ctavg), "avg")
     lad1.show()
 
     let lad2 = new plot("lad_2")
-    lad2.insertLine(JSON.parse(resp.data.lad_max),"R_max")
-    lad2.insertLine(JSON.parse(resp.data.lad_min),"R_min")
+    lad2.insertLine(JSON.parse(data.lad_max), "R_max")
+    lad2.insertLine(JSON.parse(data.lad_min), "R_min")
     lad2.show()
 
     let lcx1 = new plot("lcx_1")
-    lcx1.insertLine(JSON.parse(resp.data.lcx_ctmax),"max")
-    lcx1.insertLine(JSON.parse(resp.data.lcx_ctmin),"min")
-    lcx1.insertLine(JSON.parse(resp.data.lcx_ctavg),"avg")
+    lcx1.insertLine(JSON.parse(data.lcx_ctmax), "max")
+    lcx1.insertLine(JSON.parse(data.lcx_ctmin), "min")
+    lcx1.insertLine(JSON.parse(data.lcx_ctavg), "avg")
     lcx1.show()
 
     let lcx2 = new plot("lcx_2")
-    lcx2.insertLine(JSON.parse(resp.data.lcx_max),"R_max")
-    lcx2.insertLine(JSON.parse(resp.data.lcx_min),"R_min")
+    lcx2.insertLine(JSON.parse(data.lcx_max), "R_max")
+    lcx2.insertLine(JSON.parse(data.lcx_min), "R_min")
     lcx2.show()
 
     let rca1 = new plot("rca_1")
-    rca1.insertLine(JSON.parse(resp.data.rca_ctmax),"max")
-    rca1.insertLine(JSON.parse(resp.data.rca_ctmin),"min")
-    rca1.insertLine(JSON.parse(resp.data.rca_ctavg),"avg")
+    rca1.insertLine(JSON.parse(data.rca_ctmax), "max")
+    rca1.insertLine(JSON.parse(data.rca_ctmin), "min")
+    rca1.insertLine(JSON.parse(data.rca_ctavg), "avg")
     rca1.show()
     let rca2 = new plot("rca_2")
-    rca2.insertLine(JSON.parse(resp.data.rca_max),"R_max")
-    rca2.insertLine(JSON.parse(resp.data.rca_min),"R_min")
+    rca2.insertLine(JSON.parse(data.rca_max), "R_max")
+    rca2.insertLine(JSON.parse(data.rca_min), "R_min")
     rca2.show()
 
     let lm1 = new plot("lm_1")
-    lm1.insertLine(JSON.parse(resp.data.lm_ctmax),"max")
-    lm1.insertLine(JSON.parse(resp.data.lm_ctmin),"min")
-    lm1.insertLine(JSON.parse(resp.data.lm_ctavg),"avg")
+    lm1.insertLine(JSON.parse(data.lm_ctmax), "max")
+    lm1.insertLine(JSON.parse(data.lm_ctmin), "min")
+    lm1.insertLine(JSON.parse(data.lm_ctavg), "avg")
     lm1.show()
     let lm2 = new plot("lm_2")
-    lm2.insertLine(JSON.parse(resp.data.lm_max),"R_max")
-    lm2.insertLine(JSON.parse(resp.data.lm_min),"R_min")
+    lm2.insertLine(JSON.parse(data.lm_max), "R_max")
+    lm2.insertLine(JSON.parse(data.lm_min), "R_min")
     lm2.show()
 
   })
 
-
-
-  var line_data1 = {
-    data : sin,
-    color: '#3c8dbc'
-  }
-  var line_data2 = {
-    data : cos,
-    color: '#00c0ef'
-  }
+  // var line_data1 = {
+  //   data : sin,
+  //   color: '#3c8dbc'
+  // }
+  // var line_data2 = {
+  //   data : cos,
+  //   color: '#00c0ef'
+  // }
 </script>
 
 <script>

@@ -8,10 +8,10 @@ package controller
 
 import (
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 func UiManageGetHandler(ctx *gin.Context) {

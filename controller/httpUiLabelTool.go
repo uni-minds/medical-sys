@@ -16,47 +16,50 @@ package controller
 
 import (
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/module"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"uni-minds.com/liuxy/medical-sys/module"
+	"strings"
+	"time"
 )
 
 func UiLabeltoolGet(ctx *gin.Context) {
-	content := ""
-	tp := ctx.Query("type")
-	switch tp {
-	case "us":
+	mediaIndex := ctx.Param("mediaIndex")
 
-		mediaHash := ctx.Query("media")
-		if mediaHash == "" {
-			return
-		}
-		mid := module.MediaGetMid(mediaHash)
+	var summary module.MediaSummaryInfo
+	if strings.Contains(mediaIndex, DICOM_TYPE_US_ID) {
+		// instance_id
+		summary, _ = module.InstanceGetSummary(mediaIndex)
 
-		switch ctx.Query("action") {
-		case "author":
-
-		case "review":
-
-		}
-		//
-		summary, _ := module.MediaGetSummary(mid)
-
-		ctx.HTML(http.StatusOK, "labelsys-v2.html", gin.H{
-			"title":          "影像标注 | Medi-sys",
-			"media_hash":     mediaHash,
-			"media_duration": summary.Duration,
-			"media_frames":   summary.Frames,
-			"media_height":   summary.Height,
-			"media_width":    summary.Width,
-			"custom_scripts": "/webapp/labelsys/us/labelsys-v2.js",
-		})
-		break
-
-	default:
-		content = fmt.Sprintf("未知类型：%s", tp)
+	} else if len(mediaIndex) == 32 {
+		mid := module.MediaGetMid(mediaIndex)
+		summary, _ = module.MediaGetSummary(mid)
 	}
 
-	ctx.Writer.Write([]byte(content))
-	return
+	customScript := fmt.Sprintf("/webapp/labelsys/us/labelsys.js?rnd=%s", getRandomString())
+
+	switch ctx.Param("usertype") {
+	case "author", "review":
+		ctx.HTML(http.StatusOK, "labelsys.html", gin.H{
+			"title":          "影像标注 | Medi-sys",
+			"mediaDuration":  summary.Duration,
+			"mediaFrames":    summary.Frames,
+			"mediaHeight":    summary.Height,
+			"mediaWidth":     summary.Width,
+			"mediaIndex":     mediaIndex,
+			"custom_scripts": customScript,
+		})
+	}
+}
+
+var randstr string
+var randgen time.Time
+
+func getRandomString() string {
+	if time.Now().Sub(randgen) > 5*time.Second {
+		randstr = tools.RandString0f(8)
+		randgen = time.Now()
+	}
+	return randstr
 }

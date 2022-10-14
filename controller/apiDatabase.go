@@ -9,12 +9,12 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/global"
+	"gitee.com/uni-minds/medical-sys/module"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"net/http/httputil"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/module"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 func PacsSearchProxy(ctx *gin.Context) {
@@ -79,6 +79,7 @@ func PacsWado(ctx *gin.Context) {
 }
 
 func PacsGet(c *gin.Context) {
+	fmt.Println("pacs get")
 	module.UpdatePacsNodes()
 	dbs := module.GetPacsDbs()
 	c.JSON(http.StatusOK, SuccessReturn(dbs))

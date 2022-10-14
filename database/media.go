@@ -10,9 +10,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"gitee.com/uni-minds/medical-sys/global"
 	"strings"
-	"uni-minds.com/liuxy/medical-sys/global"
 )
 
 func (*MediaInfo) TableName() string {
@@ -85,7 +84,7 @@ func initMediaDB() {
 
 	_, err := DB().Execute(dbSql)
 	if err != nil {
-		log.Panic(err.Error())
+		log("e", err.Error())
 	}
 }
 
@@ -113,7 +112,7 @@ func MediaGet(i interface{}) (mi MediaInfo, err error) {
 		err = DB().Table(&mi).Where("mid", "=", i).Select()
 		if mi.Mid == 0 {
 			if err != nil {
-				log.Println("E DB", err.Error())
+				log("e", err.Error())
 			}
 			err = errors.New(global.EMediaNotExist)
 		}
@@ -124,7 +123,7 @@ func MediaGet(i interface{}) (mi MediaInfo, err error) {
 		err = DB().Table(&mi).Where("hash", "=", key).Select()
 		if mi.Mid == 0 {
 			if err != nil {
-				log.Println("E DB", err.Error())
+				log("E", err.Error())
 			}
 			err = errors.New(global.EMediaNotExist)
 		}
@@ -136,7 +135,7 @@ func MediaGetByDisplayName(displayname string) (mi MediaInfo, err error) {
 	err = DB().Table(&mis).Where("displayname", "=", displayname).Select()
 
 	if err != nil {
-		log.Println("E DB MediaGetByDisplayName", err.Error())
+		log("E", "MediaGetByDisplayName", err.Error())
 	} else if len(mis) == 0 {
 		err = errors.New(global.EMediaNotExist)
 	} else if len(mis) > 1 {
@@ -230,6 +229,7 @@ func MediaUpdateWidthAndHeight(mid, width, height int) error {
 	data := map[string]interface{}{"width": width, "height": height}
 	return MediaUpdate(mid, data)
 }
+
 func MediaUpdateHash(mid int, hash string) error {
 	data := map[string]interface{}{"hash": hash}
 	return MediaUpdate(mid, data)

@@ -7,6 +7,11 @@
 package global
 
 import (
+	"encoding/csv"
+	"fmt"
+	"os"
+	"path"
+	"path/filepath"
 	"strings"
 )
 
@@ -61,7 +66,7 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 	}
 
 	switch strings.ToLower(view) {
-	case "4ap", "aa":
+	case "4ap", "aa", "4cv":
 		d = append(d, []LabelTool{
 			DefaultUltrasonicLabel("XG"), DefaultUltrasonicLabel("JZ"), DefaultUltrasonicLabel("DAO"),
 			DefaultUltrasonicLabel("LA"), DefaultUltrasonicLabel("LV"), DefaultUltrasonicLabel("RA"),
@@ -99,6 +104,7 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 			{Type: "com", Group: "c", Color: "#FD843F", Id: "IVC", Name: "下腔静脉"},
 			{Type: "com", Group: "c", Color: "#FB43FD", Id: "LIVER", Name: "肝脏"},
 			{Type: "com", Group: "c", Color: "#ffe2c3", Id: "JJM", Name: "奇静脉"},
+			{Type: "com", Group: "c", Color: "#ffa0c3", Id: "FLK", Name: "腹部轮廓"},
 			{Type: "com", Group: "c", Color: "#f0e533", Id: "DN", Name: "胆囊"}}...)
 
 		d = append(d, []LabelTool{
@@ -108,7 +114,7 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 			{Type: "com", Group: "s", Color: "#FFC", Id: "ERR2", Name: "异常结构2"},
 			{Type: "com", Group: "s", Color: "#FFE", Id: "ERR3", Name: "异常结构3"}}...)
 
-	case "l":
+	case "l", "lvot":
 		d = append(d, []LabelTool{
 			DefaultUltrasonicLabel("XG"), DefaultUltrasonicLabel("JZ"), DefaultUltrasonicLabel("DAO"),
 			DefaultUltrasonicLabel("LA"), DefaultUltrasonicLabel("LV"), DefaultUltrasonicLabel("AO"),
@@ -127,7 +133,7 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 			{Type: "com", Group: "s", Color: "#FFE", Id: "TSC3", Name: "TSC3"},
 			{Type: "com", Group: "s", Color: "#5abd63", Id: "PA", Name: "肺动脉"}}...)
 
-	case "r":
+	case "r", "rvot":
 		d = append(d, []LabelTool{
 			DefaultUltrasonicLabel("XG"), DefaultUltrasonicLabel("JZ"), DefaultUltrasonicLabel("DAO"),
 			DefaultUltrasonicLabel("LA"), DefaultUltrasonicLabel("LV"), DefaultUltrasonicLabel("AO"),
@@ -162,7 +168,8 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 			DefaultUltrasonicLabel("真肋骨1"), DefaultUltrasonicLabel("真肋骨2"), DefaultUltrasonicLabel("DAO"),
 			DefaultUltrasonicLabel("AO"), DefaultUltrasonicLabel("PA"),
 			DefaultUltrasonicLabel("T"), DefaultUltrasonicLabel("右上腔静脉"), DefaultUltrasonicLabel("无名静脉"),
-			DefaultUltrasonicLabel("奇静脉"), DefaultUltrasonicLabel("Thymus"), DefaultUltrasonicLabel("SVC")}...)
+			DefaultUltrasonicLabel("奇静脉"), DefaultUltrasonicLabel("Thymus"), DefaultUltrasonicLabel("SVC"),
+			DefaultUltrasonicLabel("LPA"), DefaultUltrasonicLabel("RPA")}...)
 		//DefaultUltrasonicLabel("SVC"),
 
 		d = append(d, []LabelTool{
@@ -173,7 +180,7 @@ func DefaultUltrasonicViewData(view string) (d []LabelTool) {
 		}...)
 	}
 
-	log("t", "crf table:", d)
+	//log("t", "crf table:", d)
 
 	return d
 }
@@ -262,11 +269,11 @@ func DefaultUltrasonicLabel(name string) LabelTool {
 		lt.Id = "LV"
 		lt.Name = "左室"
 	case "二尖瓣前叶":
-		lt.Color = "#a3ebff"
+		lt.Color = "#33CCFF" //"#a3ebff"
 		lt.Id = "EJBQY"
 		lt.Name = "二尖瓣前叶"
 	case "二尖瓣后叶":
-		lt.Color = "#8bb9ff"
+		lt.Color = "#CC00CC" //"#4f61b7"
 		lt.Id = "EJBHY"
 		lt.Name = "二尖瓣后叶"
 	case "右房", "RA":
@@ -333,8 +340,60 @@ func DefaultUltrasonicLabel(name string) LabelTool {
 		lt.Color = "#5c003e"
 		lt.Id = "Thymus"
 		lt.Name = "胸腺"
+
 	default:
 		log("e", "label info not exist:", name)
 	}
 	return lt
+}
+
+func LabelWriteCrf(filename, view string) error {
+	data := DefaultUltrasonicViewData(view)
+
+	if data != nil {
+		f, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, os.ModePerm)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		w := csv.NewWriter(f)
+		var header = []string{"id", "name", "group", "type", "domain", "value", "color", "gopen", "gradio"}
+		w.Write(header)
+		for _, d := range data {
+			line := []string{d.Id, d.Name, d.Group, d.Type, d.Domain, d.Value, strings.ToUpper(d.Color)}
+			if d.GOpen {
+				line = append(line, "1")
+			} else {
+				line = append(line, "")
+			}
+			if d.GRadio {
+				line = append(line, "1")
+			} else {
+				line = append(line, "")
+			}
+			w.Write(line)
+		}
+		w.Flush()
+	}
+	return nil
+}
+
+func LabelCrfFromCsv(view string) error {
+	csvRoot := path.Join(GetAppSettings().PathApp, "database", "crf")
+	err := filepath.Walk(csvRoot, func(path string, f os.FileInfo, err error) error {
+		if f == nil {
+			return err
+		}
+		if f.IsDir() {
+			return nil
+		}
+		filename := filepath.Base(path)
+		filename = strings.Split(filename, ".")[0]
+		info := strings.Split(filename, "_")
+		fmt.Println(info)
+		return nil
+	})
+	return err
+
 }

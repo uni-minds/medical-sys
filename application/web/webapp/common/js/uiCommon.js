@@ -29,7 +29,7 @@ $(function() {
             $.get("/api/v1/raw?action=getmenujson", result => {
                 if (result.code === 200) {
                     this.menudata = result.data;
-                    if (!!navMenuActive) {
+                    if (typeof(navMenuActive)!='undefined') {
                         this.active = navMenuActive
                     } else {
                         // setTimeout(menuCreate, 3000);

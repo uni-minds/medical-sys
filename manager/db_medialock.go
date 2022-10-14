@@ -8,7 +8,6 @@ package manager
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -23,63 +22,60 @@ type MediaAccess struct {
 	DB   map[string]MediaLocker
 }
 
-var mediaAccessLockTime = 5 * time.Second
+const MediaAccessLockTime = 45 * time.Second
+
 var mediaAccess MediaAccess
 
-func init() {
-	mediaAccess.DB = make(map[string]MediaLocker, 0)
-}
-func MediaAccessSetLock(mediaHash string, uid int, tp string) (status MediaLocker, err error) {
-	status, err = MediaAccessGetLock(mediaHash)
-	if err == nil {
-		// 存在锁，未超时
-		if status.Uid == uid {
-			mediaAccess.Lock.Lock()
-			status.Time = time.Now()
-			status.Type = tp
-			mediaAccess.DB[mediaHash] = status
-			mediaAccess.Lock.Unlock()
-			//log.Println("Locker time renew:", status)
-			fmt.Print(".")
-		}
-		return status, errors.New("media locked")
-	} else {
+func MediaAccessSetLock(mediaIndex string, uid int, tp string) (status MediaLocker, err error) {
+	if status, err = MediaAccessGetLock(mediaIndex); err != nil {
 		// 未存在锁，或已超时
+		mediaAccess.Lock.Lock()
 		status = MediaLocker{
 			Uid:  uid,
 			Time: time.Now(),
 			Type: tp,
 		}
-		mediaAccess.Lock.Lock()
-		mediaAccess.DB[mediaHash] = status
+		mediaAccess.DB[mediaIndex] = status
 		mediaAccess.Lock.Unlock()
 		return status, nil
+
+	} else {
+		// 存在锁，未超时
+		if status.Uid == uid {
+			mediaAccess.Lock.Lock()
+			status.Time = time.Now()
+			status.Type = tp
+			mediaAccess.DB[mediaIndex] = status
+			mediaAccess.Lock.Unlock()
+			return status, nil
+		}
+		return status, errors.New("lock by others")
 	}
 }
-func MediaAccessGetLock(mediaHash string) (status MediaLocker, err error) {
+func MediaAccessGetLock(mediaIndex string) (status MediaLocker, err error) {
 	mediaAccess.Lock.RLock()
-	status, ok := mediaAccess.DB[mediaHash]
+	status, ok := mediaAccess.DB[mediaIndex]
 	mediaAccess.Lock.RUnlock()
-	if !ok || time.Now().Sub(status.Time) > mediaAccessLockTime {
-		MediaAccessUnlock(mediaHash, 0, true)
+	if !ok || time.Now().Sub(status.Time) > MediaAccessLockTime {
+		MediaAccessUnlock(mediaIndex, 0, true)
 		err = errors.New("media lock not found")
 	}
 	return
 }
-func MediaAccessUnlock(mediaHash string, uid int, override bool) bool {
+func MediaAccessUnlock(mediaIndex string, uid int, override bool) bool {
 	if override {
 		mediaAccess.Lock.Lock()
-		delete(mediaAccess.DB, mediaHash)
+		delete(mediaAccess.DB, mediaIndex)
 		mediaAccess.Lock.Unlock()
 		return true
 	}
 
 	mediaAccess.Lock.RLock()
-	status, ok := mediaAccess.DB[mediaHash]
+	status, ok := mediaAccess.DB[mediaIndex]
 	mediaAccess.Lock.RUnlock()
 	if ok && status.Uid == uid {
 		mediaAccess.Lock.Lock()
-		delete(mediaAccess.DB, mediaHash)
+		delete(mediaAccess.DB, mediaIndex)
 		mediaAccess.Lock.Unlock()
 		return true
 	}

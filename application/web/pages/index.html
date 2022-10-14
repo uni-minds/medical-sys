@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>test</title>
+</head>
+<body class="hold-transition sidebar-mini layout-fixed">
+  <h1>hello</h1>
+</body>
+<script src="../plugins/jquery/jquery.min.js"></script>
+<script src="../plugins-custom/pako/pako.min.js"></script>
+<script src="../webapp/common/js/tools.js"></script>
+<script>
+  url = '/gzip/abcdefg'
+  $.get(url,(resp)=>{
+    console.log("resp",resp)
+    if (resp.code === 200) {
+      console.log(unGzip(resp.data))
+    }
+  })
+
+
+
+
+</script>
+</html>

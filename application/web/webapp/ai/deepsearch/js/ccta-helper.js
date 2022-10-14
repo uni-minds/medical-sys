@@ -1,13 +1,22 @@
 var globaldata={};
 globaldata.index=0;
 
-let DB_CCTA="http://192.168.2.102:8000";
-//let DB_CCTA="http://192.168.1.11:8080";
+let RawUrl="http://192.168.3.33:8080";
 let url=window.location.href;
 
 let StudiesUID=getQueryString(url,"StudiesUID");
 let SeriesUID=getQueryString(url,"SeriesUID");
 let ObjectUID=getQueryString(url,"ObjectUID");
+let mode=getQueryString(url,"mode")
+
+switch (mode) {
+    case "cta":
+        RawUrl = "http://192.168.3.33:8080"
+        break
+    case "ccta":
+        RawUrl = "http://192.168.3.32:8080"
+        break
+}
 
 console.log(ObjectUID);
 
@@ -31,7 +40,7 @@ function getQueryString(url,key) {
 
 function showResult(title, StudiesUID,SeriesUID,ObjectUID) {
 
-    let dcm4cheeWado = DB_CCTA+"/dcm4chee-arc/aets/AS_RECEIVED/wado?requestType=WADO";
+    let dcm4cheeWado = RawUrl+"/dcm4chee-arc/aets/AS_RECEIVED/wado?requestType=WADO";
     let wadoAddURL = "&studyUID=" + StudiesUID + "&seriesUID=" + SeriesUID + "&objectUID=" + ObjectUID;
     let jpegParams = '&contentType=image/jpeg&frameNumber=1';
     let u= dcm4cheeWado + wadoAddURL + jpegParams;

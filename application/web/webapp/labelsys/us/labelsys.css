@@ -28,7 +28,8 @@ html,body{height:100%; width:100%;overflow: hidden;}
 
 .videoProgressBuffered  {position:absolute; left:0; top:0; background-color:#f0b109; height:20px; cursor:pointer;}
 .videoProgressFrontend  {position:absolute; left:0; top:0; background-color:#ff8817; height:20px; border-right:3px solid red;}
-.videoProgressStr       {position:absolute; left:10px; top:0;}
+/*.videoProgressStr       {position:absolute; left:10px; top:0;}*/
+.videoProgressStr       {position:absolute; left:10px;}
 .videoControlCenter1{height:40px; line-height:40px; width:100%; font-size:16px;}
 #videoLC{float:left; text-align:left; margin-left:10px;}
 #videoRC{float:right; margin-right:20px; text-align:right;}

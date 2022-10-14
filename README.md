@@ -24,3 +24,7 @@ Path|Get|Post|Put|Del|Example|Return
 Path|Return
 :---|:---
 /ui/ai/result/aid/
+
+### import media (e.g. jpg/mp4)
+python3 media_index.py -i tapvc-negative-4ap -o output1 -v 4ap -g tapvc-negative -k negative,tapvc
+/ui/import?path=/root/output1

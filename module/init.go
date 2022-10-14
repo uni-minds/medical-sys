@@ -7,13 +7,25 @@
 package module
 
 import (
-	"uni-minds.com/liuxy/medical-sys/database"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/logger"
-	"uni-minds.com/liuxy/medical-sys/tools"
+	"fmt"
+	"gitee.com/uni-minds/medical-sys/database"
+	"gitee.com/uni-minds/medical-sys/global"
+	"gitee.com/uni-minds/medical-sys/logger"
+	"gitee.com/uni-minds/medical-sys/tools"
 )
 
 func Init() {
+	fmt.Println("module init: module")
+	progressData = map[int]string{
+		0: "待领取",
+		1: "正在标注",
+		2: "待审核",
+		3: "正在审核",
+		4: "审核退回",
+		5: "待重审",
+		6: "",
+		7: "审核完成",
+	}
 	checkDefaultUser()
 }
 

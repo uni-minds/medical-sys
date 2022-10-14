@@ -7,20 +7,24 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/database"
+	"gitee.com/uni-minds/medical-sys/manager"
+	"gitee.com/uni-minds/medical-sys/module"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"uni-minds.com/liuxy/medical-sys/database"
-	"uni-minds.com/liuxy/medical-sys/manager"
-	"uni-minds.com/liuxy/medical-sys/module"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
+const DICOM_TYPE_US_ID = "1.2.276.0.26.1.1.1.2"
+
 type mediaInfoForJsGrid struct {
-	Mid       int                      `json:"mid"`
+	Mid       string                   `json:"mid"`
 	MediaHash string                   `json:"media"`
 	Name      string                   `json:"name"`
 	View      string                   `json:"view"`
@@ -43,21 +47,21 @@ type medialistForJsGrid struct {
 }
 
 func MediaGet(ctx *gin.Context) {
-	valid, uid := CookieValidUid(ctx)
-	if !valid {
+	uid := -1
+	if value, exists := ctx.Get("uid"); !exists {
 		return
+	} else {
+		uid = value.(int)
 	}
 
-	action := ctx.Query("action")
-	switch action {
+	switch ctx.Query("action") {
 	case "getlist":
+		var callback medialistForJsGrid
+
 		gid, err := strconv.Atoi(ctx.Query("gid"))
 		if err != nil {
 			return
 		}
-
-		var callback medialistForJsGrid
-
 		page, _ := strconv.Atoi(ctx.Query("page"))
 		if page <= 0 {
 			page = 1
@@ -66,83 +70,266 @@ func MediaGet(ctx *gin.Context) {
 		if count <= 0 {
 			count = 20
 		}
-
-		var mids []int
 		order := ctx.Query("order")
 		field := ctx.Query("field")
-		if field != "" {
-			mids = module.UserGetGroupMediaSelector(uid, gid, field, order)
-			callback.ItemsCount = len(mids)
-		} else {
-			mids = module.UserGetGroupMedia(uid, gid)
-			callback.ItemsCount = len(mids)
-		}
 
 		index := (page - 1) * count
 
-		mdata := make([]mediaInfoForJsGrid, 0)
-		if callback.ItemsCount > index {
-			_ = database.UserSetLastStatus(uid, gid, page)
-			mids = mids[index:]
-			if len(mids) >= count {
-				mids = mids[0:count]
+		groupType := ctx.Query("type")
+		switch groupType {
+		case "mid", "label_media":
+			var mediaIndex []string
+			if field != "" {
+				mediaIndex = module.UserGetGroupContainsSelector(uid, gid, field, order)
+				callback.ItemsCount = len(mediaIndex)
+			} else {
+				mediaIndex, _, _ = module.UserGetGroupContains(uid, gid)
+				callback.ItemsCount = len(mediaIndex)
 			}
 
-			for _, mid := range mids {
-				mediaSummary, err := module.MediaGetSummary(mid)
-				if err != nil {
-					log("e", "E get mediaSummary", mid, err.Error())
-					continue
+			mdata := make([]mediaInfoForJsGrid, 0)
+			if callback.ItemsCount > index {
+				_ = database.UserSetLastStatus(uid, gid, page)
+				mediaIndex = mediaIndex[index:]
+				if len(mediaIndex) >= count {
+					mediaIndex = mediaIndex[0:count]
 				}
 
-				labelSummary, err := module.LabelGetSummary(mediaSummary.Hash)
-				var authorData, reviewData labelInfoForJsGridButton
-				if err == nil {
-					authorData = labelInfoForJsGridButton{
-						Realname: labelSummary.AuthorRealname,
-						Tips:     labelSummary.AuthorTips,
-						Status:   labelSummary.AuthorProgress,
+				for _, mid := range mediaIndex {
+					id, _ := strconv.Atoi(mid)
+					mediaSummary, err := module.MediaGetSummary(id)
+					if err != nil {
+						log("e", "E get mediaSummary", mid, err.Error())
+						continue
 					}
 
-					reviewData = labelInfoForJsGridButton{
-						Realname: labelSummary.ReviewRealname,
-						Tips:     labelSummary.ReviewTips,
-						Status:   labelSummary.ReviewProgress,
+					labelSummary, _, _, err := module.LabelGetSummary(mediaSummary.Hash)
+					var authorData, reviewData labelInfoForJsGridButton
+					if err == nil {
+						authorData = labelInfoForJsGridButton{
+							Realname: labelSummary.AuthorRealname,
+							Tips:     labelSummary.AuthorTips,
+							Status:   labelSummary.AuthorProgress,
+						}
+
+						reviewData = labelInfoForJsGridButton{
+							Realname: labelSummary.ReviewRealname,
+							Tips:     labelSummary.ReviewTips,
+							Status:   labelSummary.ReviewProgress,
+						}
 					}
+
+					mdata = append(mdata, mediaInfoForJsGrid{
+						Mid:       mid,
+						MediaHash: mediaSummary.Hash,
+						Name:      mediaSummary.DisplayName,
+						View:      mediaSummary.Views,
+						Duration:  mediaSummary.Duration,
+						Frames:    mediaSummary.Frames,
+						Authors:   authorData,
+						Reviews:   reviewData,
+						Memo:      mediaSummary.Memo,
+					})
 				}
-
-				mdata = append(mdata, mediaInfoForJsGrid{
-					Mid:       mid,
-					MediaHash: mediaSummary.Hash,
-					Name:      mediaSummary.DisplayName,
-					View:      mediaSummary.Views,
-					Duration:  mediaSummary.Duration,
-					Frames:    mediaSummary.Frames,
-					Authors:   authorData,
-					Reviews:   reviewData,
-					Memo:      mediaSummary.Memo,
-				})
 			}
+			callback.Data = mdata
+
+		case "label_dicom", "instanceid":
+			server := database.BridgeGetPacsServerHandler()
+			instanceIds, _, err := module.UserGetGroupContains(uid, gid)
+			if err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(403, err.Error()))
+				return
+			}
+
+			callback.ItemsCount = len(instanceIds)
+			mdata := make([]mediaInfoForJsGrid, 0)
+
+			if callback.ItemsCount > index {
+				_ = database.UserSetLastStatus(uid, gid, page)
+				end := index + count
+				if end > len(instanceIds) {
+					end = len(instanceIds)
+				}
+
+				for _, instanceId := range instanceIds[index:end] {
+					info, err := server.FindInstanceByIdLocal(instanceId)
+					if err != nil {
+						log("e", err.Error())
+						continue
+					}
+
+					var authorData, reviewData labelInfoForJsGridButton
+					if labelSummary, _, _, err := module.LabelGetSummary(instanceId); err == nil {
+						authorData = labelInfoForJsGridButton{
+							Realname: labelSummary.AuthorRealname,
+							Tips:     labelSummary.AuthorTips,
+							Status:   labelSummary.AuthorProgress,
+						}
+
+						reviewData = labelInfoForJsGridButton{
+							Realname: labelSummary.ReviewRealname,
+							Tips:     labelSummary.ReviewTips,
+							Status:   labelSummary.ReviewProgress,
+						}
+					}
+
+					mdata = append(mdata, mediaInfoForJsGrid{
+						Mid:       instanceId,
+						MediaHash: instanceId,
+						Name:      instanceId,
+						View:      info.LabelView,
+						Duration:  info.Duration,
+						Frames:    info.Frames,
+						Authors:   authorData,
+						Reviews:   reviewData,
+						Memo:      module.LabelGetMemo(instanceId),
+					})
+				}
+			}
+			callback.Data = mdata
 		}
-		callback.Data = mdata
-		//jc, _ := json.Marshal(callback)
-		//ctx.JSON(http.StatusOK, tools.SuccessReturn(string(jc)))
+
 		ctx.JSON(http.StatusOK, SuccessReturn(callback))
 		return
+	}
+}
 
-	case "play":
-		mediaHash := ctx.Query("media")
-		if len(mediaHash) < 32 {
-			return
+func MediaPreOperation(ctx *gin.Context) {
+	mediaIndex := ctx.Param("mediaIndex")
+	if mediaIndex == "" {
+		ctx.JSON(http.StatusOK, FailReturn(400, "empty index"))
+		ctx.Abort()
+	}
+	ctx.Next()
+}
+
+func MediaGetOperation(ctx *gin.Context) {
+	//uid := -1
+	//if value, exists := ctx.Get("uid"); !exists {
+	//	return
+	//} else {
+	//	uid = value.(int)
+	//}
+
+	mediaIndex := ctx.Param("mediaIndex")
+	op := ctx.Param("op")
+
+	switch op {
+	case "check":
+		tp := ctx.Query("type")
+		switch tp {
+		case "ogv":
+			ctx.JSON(http.StatusOK, SuccessReturn("OK"))
+		case "mp4":
+		case "jpg":
+		case "png":
+		default:
+			ctx.JSON(http.StatusOK, FailReturn(403, fmt.Sprintf("unknown type: %s", tp)))
+
 		}
-		fogv := module.MediaGetRealpath(mediaHash, uid)
+
+	case "video":
+		tp := ctx.Query("type")
+		if tp == "" {
+			tp = "video"
+		}
+
+		if bs, _, err := module.PacsGetInstanceMedia(mediaIndex, tp); err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(403, err.Error()))
+		} else {
+			ctx.Writer.Write(bs)
+		}
+
+	case "image":
+		bs, _, err := module.PacsGetInstanceMedia(mediaIndex, "image")
+
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		} else {
+			ctx.Writer.Write(bs)
+		}
+
+	case "lock":
+		switch mediaIndex {
+		case "*":
+			ctx.JSON(http.StatusOK, SuccessReturn(manager.MediaAccessLockList()))
+		default:
+			status, err := manager.MediaAccessGetLock(mediaIndex)
+			if err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, status))
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn(status))
+			}
+		}
+
+	case "thumb":
+		switch ctx.Query("size") {
+		default:
+			bs, err := module.PacsGetInstanceThumb(mediaIndex)
+			if err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+			} else {
+				ctx.Writer.Write(bs)
+			}
+		}
+	}
+}
+
+func MediaPostOperation(ctx *gin.Context) {
+	uid := -1
+	if value, exists := ctx.Get("uid"); !exists {
+		return
+	} else {
+		uid = value.(int)
+	}
+
+	mediaIndex := ctx.Param("mediaIndex")
+	op := ctx.Param("op")
+
+	switch op {
+	case "lock":
+		status, err := manager.MediaAccessSetLock(mediaIndex, uid, "")
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+		} else {
+			ctx.JSON(http.StatusOK, SuccessReturn(status))
+		}
+	}
+}
+
+func MediaDeleteOperation(ctx *gin.Context) {
+	uid := -1
+	if value, exists := ctx.Get("uid"); !exists {
+		return
+	} else {
+		uid = value.(int)
+	}
+
+	mediaIndex := ctx.Param("mediaIndex")
+	op := ctx.Param("op")
+
+	switch op {
+	case "lock":
+		manager.MediaAccessUnlock(mediaIndex, uid, true)
+		ctx.JSON(http.StatusOK, SuccessReturn("OK"))
+	}
+}
+
+func MediaGetData(mediaIndex string, uid int, mediaType string) ([]byte, error) {
+	if strings.Contains(mediaIndex, DICOM_TYPE_US_ID) {
+		return module.InstanceGetVideo(mediaIndex, uid)
+
+	} else if len(mediaIndex) < 32 {
+		return nil, errors.New("unknown mediaIndex")
+	} else {
+		fogv := module.MediaGetRealpath(mediaIndex, uid)
 		if _, err := os.Stat(fogv); err != nil {
-			fmt.Println("E;media file not found!", fogv)
-			return
+			return nil, err
 		}
 
-		t := ctx.Query("type")
-		switch t {
+		var filepath string
+		switch mediaType {
 		case "mp4":
 			fmp4 := strings.Replace(fogv, ".ogv", ".mp4", 1)
 			if _, err := os.Stat(fmp4); err != nil {
@@ -151,69 +338,26 @@ func MediaGet(ctx *gin.Context) {
 					fmt.Printf("ffmpeg convert: %s => %s\n", fogv, fmp4)
 					if err := tools.FFmpegToH264(fogv, fmp4); err != nil {
 						fmt.Println("E;ffmpeg convert:", err.Error())
-						return
+						return nil, err
 					}
 					fmt.Println("ffmpeg convert finish.")
 				}
 			}
 
-			ctx.File(fmp4)
-			return
+			filepath = fmp4
 
 		default:
-			ctx.File(fogv)
-
+			filepath = fogv
 		}
 
-		return
-
-	case "getlock":
-		mediaHash := ctx.Query("media")
-
-		if mediaHash == "ALL" {
-			ctx.JSON(http.StatusOK, SuccessReturn(manager.MediaAccessLockList()))
-			return
-		}
-
-		if len(mediaHash) < 32 {
-			return
-		}
-
-		status, err := manager.MediaAccessGetLock(mediaHash)
-		if err != nil {
-			ctx.JSON(http.StatusOK, FailReturn(400, status))
+		if fp, err := os.OpenFile(filepath, os.O_RDONLY, os.ModePerm); err != nil {
+			return nil, err
+		} else if bs, err := ioutil.ReadAll(fp); err != nil {
+			fp.Close()
+			return nil, err
 		} else {
-			ctx.JSON(http.StatusOK, SuccessReturn(status))
+			fp.Close()
+			return bs, nil
 		}
-
-	case "setlock":
-		mediaHash := ctx.Query("media")
-		if len(mediaHash) < 32 {
-			return
-		}
-
-		tp := ctx.Query("type")
-		switch tp {
-		case "author", "review":
-			status, err := manager.MediaAccessSetLock(mediaHash, uid, tp)
-			if err != nil {
-				ctx.JSON(http.StatusOK, FailReturn(400, status))
-			} else {
-				ctx.JSON(http.StatusOK, SuccessReturn(status))
-			}
-		}
-
-	case "setunlock":
-		mediaHash := ctx.Query("media")
-		if len(mediaHash) < 32 {
-			return
-		}
-
-		manager.MediaAccessUnlock(mediaHash, uid, true)
-		ctx.JSON(http.StatusOK, SuccessReturn("OK"))
-
-	default:
-		ctx.JSON(http.StatusOK, FailReturn(400, action))
-
 	}
 }

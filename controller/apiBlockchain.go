@@ -9,12 +9,11 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/global"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"net/http"
 	"time"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 func GetBlockchainNodelist(ctx *gin.Context) {
@@ -75,20 +74,4 @@ func GetBlockHeight(ctx *gin.Context) {
 	} else {
 		ctx.JSON(http.StatusOK, SuccessReturn(resp.Data))
 	}
-}
-
-func WebSocket(ctx *gin.Context) {
-	// change the reqest to websocket model
-	conn, error := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(ctx.Writer, ctx.Request, nil)
-	if error != nil {
-		http.NotFound(ctx.Writer, ctx.Request)
-		return
-	}
-	// websocket connect
-	client := &Client{ID: "abab", Socket: conn, Send: make(chan []byte)}
-
-	Manager.Register <- client
-
-	go client.Read()
-	go client.Write()
 }

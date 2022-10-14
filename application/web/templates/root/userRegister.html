@@ -7,13 +7,13 @@
   <!-- Tell the browser to be responsive to screen width -->
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="../../plugins/fontawesome-free/css/all.min.css">
+  <link rel="stylesheet" href="/plugins/fontawesome-free/css/all.min.css">
   <!-- Theme style -->
-  <link rel="stylesheet" href="../../dist/css/adminlte.min.css">
-  <!-- SweetAlert2 -->
-  <link rel="stylesheet" href="../../plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
+  <link rel="stylesheet" href="/dist/css/adminlte.min.css">
   <!-- Google Font: Source Sans Pro -->
-  <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+  <link href="https://fonts.font.im/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+  <!-- SweetAlert2 -->
+  <link rel="stylesheet" href="/plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
 </head>
 <body class="hold-transition register-page">
 <div class="register-box">
@@ -77,7 +77,7 @@
           <div class="form-group mb-0">
             <div class="custom-control custom-checkbox">
               <input type="checkbox" name="terms" class="custom-control-input" id="terms">
-              <label class="custom-control-label" for="terms">我同意<a href="../../webapp/docs/terms.html">《最终用户许可协议》</a>。</label>
+              <label class="custom-control-label" for="terms">我同意<a href="/webapp/docs/terms.html">《最终用户许可协议》</a>。</label>
             </div>
           </div>
         </div>
@@ -94,118 +94,16 @@
 <!-- /.register-box -->
 
 <!-- jQuery -->
-<script src="../../plugins/jquery/jquery.min.js"></script>
+<script src="/plugins/jquery/jquery.min.js"></script>
 <!-- Bootstrap 4 -->
-<script src="../../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- SweetAlert2 -->
-<script src="../../plugins/sweetalert2/sweetalert2.min.js"></script>
+<script src="/plugins/sweetalert2/sweetalert2.min.js"></script>
 <!-- jquery-validation -->
-<script src="../../plugins/jquery-validation/jquery.validate.min.js"></script>
-<script src="../../plugins/jquery-validation/localization/messages_zh.min.js"></script>
-
-<script type="text/javascript">
-
-  const Toast = Swal.mixin({
-    position: 'center',
-    showConfirmButton: false,
-    timer: 3000
-  });
-
-  $(document).ready(function () {
-    $.validator.setDefaults({
-      submitHandler: function () {
-        var userRegisterInfo = {
-          username: $('#username').val(),
-          password: $('#password1').val(),
-          realname: $('#realname').val(),
-          email: $('#email').val(),
-          regcode: $('#regcode').val(),
-        };
-        $.ajax({
-          method: 'POST',
-          url: '{{.regapi}}',
-          data: JSON.stringify(userRegisterInfo)
-        }).done(function (answer) {
-          console.log(answer);
-          if (answer.msg === "success") {
-            Toast.fire({
-              type: 'success',
-              title: '注册成功，3秒后自动跳转到登录界面。'
-            });
-            setTimeout(function () {
-              window.location.href = "/"
-            }, 3000)
-          } else {
-            Toast.fire({
-              type: 'error',
-              title: answer.msg,
-              showConfirmButton: true,
-            });
-          }
-        });
-      }
-    });
-
-   $.validator.addMethod("password", function(value, element) {
-      let reg = /^(?=.*\d)(?=.*[a-zA-Z]).{2,20}$/;
-      return reg.test(value);
-    }, "密码中必须包含数字、字母");
-
-    $('#registerForm').validate({
-      rules: {
-        username:{
-          required:true,
-          minlength:5,
-        },
-        realname:{
-          required:true,
-          minlength:2,
-        },
-        regcode:"required",
-        email: {
-          required: true,
-          email: true,
-        },
-        password1: {
-          required: true,
-          minlength: 6,
-          password:true,
-        },
-        password2:{
-          required:true,
-          equalTo:"#password1",
-        },
-        terms: "required",
-      },
-      messages: {
-        username:{
-          required:"请输入用户名。",
-        },
-        realname:{
-          required:"系统要求实名审核，请填写您的姓名。",
-        },
-        regcode:{
-          required:"请联系系统管理员获取邀请码",
-        },
-        password1:{
-          minlength: "密码应由不少于6个数字、字母组成，建议包含特殊符号。"
-        },
-        terms: "请同意《最终用户许可协议》"
-      },
-      errorElement: 'span',
-      errorPlacement: function (error, element) {
-        error.addClass('invalid-feedback');
-        element.closest('.form-group').append(error);
-      },
-      highlight: function (element, errorClass, validClass) {
-        $(element).addClass('is-invalid');
-      },
-      unhighlight: function (element, errorClass, validClass) {
-        $(element).removeClass('is-invalid');
-      }
-    });
-  });
-</script>
+<script src="/plugins/jquery-validation/jquery.validate.min.js"></script>
+<script src="/plugins/jquery-validation/localization/messages_zh.min.js"></script>
+<script>const masterApi={{.masterApi}}</script>
+<script src="/webapp/js/root_user_register.js"></script>
 
 </body>
 </html>

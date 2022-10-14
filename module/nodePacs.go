@@ -10,9 +10,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/global"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"net/url"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type PacsSearchParams struct {

@@ -5,6 +5,9 @@ After=network.target
 [Service]
 ExecStart=/usr/bin/medical_sys
 Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=medisys
 
 [Install]
 WantedBy=multi-user.target

@@ -9,9 +9,7 @@ package database
 import (
 	"errors"
 	"fmt"
-	"log"
-	"time"
-	"uni-minds.com/liuxy/medical-sys/global"
+	"gitee.com/uni-minds/medical-sys/global"
 )
 
 func (*LabelInfo) TableName() string {
@@ -56,18 +54,18 @@ func initLabelDB() {
 
 	_, err := DB().Execute(dbSql)
 	if err != nil {
-		log.Panic(err.Error())
+		log("e", err.Error())
 	}
 }
 func LabelGet(i interface{}) (li LabelInfo, err error) {
 	switch i.(type) {
 	case int:
-		err = DB().Table(&li).Where("lid", "=", i).Select()
+		err = DB().Table(&li).Where("lid", i).Select()
 		if err != nil || li.Lid == 0 {
 			err = errors.New(global.ELabelDBLabedNotExist)
 		}
 	case string:
-		err = DB().Table(&li).Where("mediahash", "=", i).Select()
+		err = DB().Table(&li).Where("mediahash", i).Select()
 		if err != nil || li.Lid == 0 {
 			err = errors.New(global.ELabelDBLabedNotExist)
 		}
@@ -80,37 +78,54 @@ func LabelUpdateProgress(lid, progress int) error {
 	return err
 }
 func LabelCreate(li LabelInfo) error {
+	fmt.Println("label create:", li)
 	li.Lid = 0
 	_, err := DB().Table(global.DefaultDatabaseLabelTable).Data(li).Insert()
 	if err != nil {
-		log.Println("E Label create:", err.Error())
+		log("E", "Label create:", err.Error())
 	}
 	return err
 }
 func LabelUpdate(li LabelInfo) (err error) {
-	_, err = DB().Table(global.DefaultDatabaseLabelTable).Data(li).Where("lid", "=", li.Lid).Update()
+	_, err = DB().Table(global.DefaultDatabaseLabelTable).Data(li).Where("lid", li.Lid).Update()
 	if err != nil {
 		fmt.Println("DB E", err.Error())
 	}
 	return
 }
-func labelUpdate(lid int, data interface{}) (err error) {
+func LabelUpdateMemo(i interface{}, memo string) error {
+	li, err := LabelGet(i)
+	if err != nil {
+		return err
+	}
+	li.Memo = memo
+	return LabelUpdate(li)
+}
+func LabelUpdateManual(i interface{}, data interface{}) (err error) {
 	d := data.(map[string]interface{})
-	d["timeAuthorSubmit"] = time.Now().Format(global.TimeFormat)
-	_, err = DB().Table(global.DefaultDatabaseLabelTable).Data(d).Where("lid", "=", lid).Update()
-	if err != nil {
-		fmt.Println("DB E", err.Error())
+	//d["timeAuthorSubmit"] = time.Now().Format(global.TimeFormat)
+
+	switch i.(type) {
+	case int:
+		_, err = DB().Table(global.DefaultDatabaseLabelTable).Data(d).Where("lid", i).Update()
+		if err != nil {
+			fmt.Println("DB E", err.Error())
+		}
+
+	case string:
+		_, err = DB().Table(global.DefaultDatabaseLabelTable).Data(d).Where("mediahash", i).Update()
+		if err != nil {
+			fmt.Println("DB E", err.Error())
+		}
 	}
 	return
 }
-func LabelUpdateMemo(lid int, memo string) error {
-	data := map[string]interface{}{"memo": memo}
-	return labelUpdate(lid, data)
-}
-func LabelUpdateMediaHash(lid int, mediaHash string) error {
-	data := map[string]interface{}{"mediaHash": mediaHash}
-	return labelUpdate(lid, data)
-}
+
+//func LabelUpdateMediaHash(lid int, mediaHash string) error {
+//	data := map[string]interface{}{"mediaHash": mediaHash}
+//	return LabelUpdateManual(lid, data)
+//}
+
 func LabelUpdateJsonDataOnly(lid int, jsonstr string) error {
 	data := map[string]interface{}{"data": jsonstr}
 	_, err := DB().Table(global.DefaultDatabaseLabelTable).Data(data).Where("lid", "=", lid).Update()
@@ -180,7 +195,7 @@ func LabelUpdateLabelData(lid, uid, frames, counts int, labeldata interface{}, p
 		return errors.New("not a regular label type.")
 	}
 
-	return labelUpdate(lid, data)
+	return LabelUpdateManual(lid, data)
 }
 
 type LabelInfoAuthorData struct {
@@ -291,11 +306,11 @@ func _LabelUpdateLabelData(lid, uid, frames, counts int, labeldata interface{}, 
 		return errors.New("not a regular label type.")
 	}
 
-	return labelUpdate(lid, data)
+	return LabelUpdateManual(lid, data)
 }
 func _LabelUpdateMemo(lid int, memo string) error {
 	data := map[string]interface{}{"memo": memo}
-	return labelUpdate(lid, data)
+	return LabelUpdateManual(lid, data)
 }
 
 func LabelDelete(lid int) (err error) {

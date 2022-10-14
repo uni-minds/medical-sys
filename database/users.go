@@ -7,15 +7,11 @@
 package database
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
-	"sort"
+	"gitee.com/uni-minds/medical-sys/global"
 	"strings"
 	"time"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 func (*UserInfo) TableName() string {
@@ -25,7 +21,6 @@ func (*UserInfo) TableName() string {
 type UserInfo struct {
 	Uid            int    `gorose:"uid"`
 	Username       string `gorose:"username"`
-	Groups         string `gorose:"groups"`
 	Password       string `gorose:"password"`
 	PasswordSalt   string `gorose:"passwordsalt"`
 	Email          string `gorose:"email"`
@@ -75,7 +70,7 @@ func initUserDB() {
 
 	_, err := DB().Execute(dbSql)
 	if err != nil {
-		log.Panic(err.Error())
+		log("e", err.Error())
 	}
 }
 func UserCreate(u UserInfo) (uid int, err error) {
@@ -159,57 +154,10 @@ func UserTokenCheck(uid int, token string) bool {
 	return ui.LastToken == token
 }
 
-func UserGetGroups(uid int) (gids []int, err error) {
-	ui, err := UserGet(uid)
-	if err != nil {
-		return
-	}
-
-	err = json.Unmarshal([]byte(ui.Groups), &gids)
-	return
-}
-func userUpdateGroups(uid int, gids []int) error {
-	j := "[]"
-	if len(gids) > 0 {
-		sort.Ints(gids)
-		b, err := json.Marshal(gids)
-		if err != nil {
-			return err
-		}
-		j = string(b)
-	}
-
-	data := map[string]interface{}{"groups": j}
-	fmt.Println("after", j)
-	return userUpdate(uid, data)
-}
-func UserAddGroup(uid, gid int) error {
-	gids, err := UserGetGroups(uid)
-	fmt.Println("before", gids)
-	if err != nil {
-		return err
-	}
-
-	gids = append(gids, gid)
-	gids = tools.RemoveDuplicateInt(gids)
-	return userUpdateGroups(uid, gids)
-}
-
-func UserRemoveGroup(uid, gid int) error {
-	gids, err := UserGetGroups(uid)
-	if err != nil {
-		return err
-	}
-
-	gids = tools.RemoveElementInt(gids, gid)
-	return userUpdateGroups(uid, gids)
-
-}
-
 func UserGetLastStatus(uid int) (lastGroupId, lastPageIndex int) {
 	ui, err := UserGet(uid)
 	if err != nil {
-		log.Println("DB E:", err.Error())
+		log("e", err.Error())
 	}
 	return ui.LastGroupId, ui.LastPageIndex
 }
@@ -220,6 +168,7 @@ func UserSetLastStatus(uid, lastGroupId, lastPageIndex int) error {
 
 func UserDelete(uid int) (err error) {
 	if uid <= 1 {
+		log("e", "remove uid failed: uid=", uid)
 		return errors.New(global.EUserForbidden)
 	}
 	_, err = DB().Table(global.DefaultDatabaseUserTable).Where("uid", "=", uid).Delete()

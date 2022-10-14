@@ -1,4 +1,4 @@
-COMPILE_VER=2.2.0
+COMPILE_VER=2.3.0
 
 GO := /usr/local/go/bin/go
 GOBUILD = ${GO} build
@@ -7,14 +7,17 @@ FLAGS = "-X 'main._BUILD_TIME_=$(shell date +"%Y-%m-%d %H:%M:%S")' -X 'main._BUI
 clean:
 	rm -rf build/
 
-build/medical_sys: main.go
+build/medical_sys: loader/core_main.go loader/router.go loader/rpc_func.go loader/rpc_struct.go loader/rpc_server.go
 	${GOBUILD} -o $@ -ldflags ${FLAGS} $^
 
-build/medical_sys_tools: main_tools/main.go
+build/medical_sys_tools: loader/core_tools.go loader/rpc_struct.go
 	${GOBUILD} -o $@ $^
 
 run:build/medical_sys
-	$^ -v -debug
+	$^ -v -d
+
+run_tools:build/medical_sys_tools
+	$^
 
 tools:build/medical_sys_tools
 

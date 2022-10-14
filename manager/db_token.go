@@ -7,10 +7,10 @@
 package manager
 
 import (
+	"gitee.com/uni-minds/medical-sys/database"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"sync"
 	"time"
-	"uni-minds.com/liuxy/medical-sys/database"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type TokenInfo struct {
@@ -24,10 +24,6 @@ type TokenAccess struct {
 }
 
 var tokenAccess TokenAccess
-
-func init() {
-	tokenAccess.DB = make(map[int]TokenInfo, 0)
-}
 
 func TokenGenerater() string {
 	return tools.RandString0f(16)

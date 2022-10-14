@@ -33,6 +33,9 @@ func UiAnalysisGet(ctx *gin.Context) {
 		case "ccta":
 			ctx.HTML(http.StatusOK, "analysis_deepsearch.html", nil)
 			return
+		case "cta":
+			ctx.HTML(http.StatusOK, "analysis_deepsearch_cta.html", nil)
+			return
 		}
 	}
 }

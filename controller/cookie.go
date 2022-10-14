@@ -8,10 +8,10 @@ package controller
 
 import (
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/manager"
 	"github.com/gin-gonic/gin"
 	"strconv"
 	"strings"
-	"uni-minds.com/liuxy/medical-sys/manager"
 )
 
 func CookieWrite(ctx *gin.Context, key string, value string, age int) {

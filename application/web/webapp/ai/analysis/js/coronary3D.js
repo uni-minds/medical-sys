@@ -100,13 +100,18 @@ $(()=>{
         }
     }
 
-    $.get("/api/v1/ai/ct/ccta/algo1/aid/mask").fail((resp)=>{
+    let u = analysisURL(window.location.href)
+    let pipe = u['pipe']
+    let url = `/api/v1/ai/ct/ccta/algo1/${pipe}/mask`
+    $.get(url).fail((resp)=>{
         alert("E:mask",resp)
     }).done((resp)=>{
+        console.log("G",url,window.location.href)
         if (resp.code !== 200) {
             console.log("E",resp.msg)
         } else {
-            let str = resp.data["mask"]
+            let data=JSON.parse(unGzip(resp.data))
+            let str = data["mask"]
             let ccta_maskdata = JSON.parse(str)
             let s = new magic(ccta_maskdata)
             s.show("area3D",'#ff244e')

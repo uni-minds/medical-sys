@@ -335,20 +335,32 @@ $(function() {
         data.seriesUID = seriesuid
         data.objectUID = objectuid
         toolWindows.frozen("正在启动图检索服务")
-        $.post(`/api/v1/analysis/ct/ccta/deepsearch`,JSON.stringify(data)).fail(()=>{
+        let postUrl = '/api/v1/analysis/ct/ccta/deepsearch'
+        let mode = 'ccta'
+        switch (data.Db) {
+            case "db_cta":
+                postUrl = '/api/v1/analysis/ct/cta/deepsearch'
+                mode = "cta"
+                break
+            case "db_ccta":
+                postUrl = '/api/v1/analysis/ct/ccta/deepsearch'
+                mode = "ccta"
+                break
+        }
+        $.post(postUrl,JSON.stringify(data)).fail(()=>{
             toolWindows.autoWarning("图检索服务未相应，请确认权限")
         }).done(resp =>{
             toolWindows.unfrozen()
-            toolWindows.autoWarning("未检测到匹配项，且影像数量少于20例，请扩充特征池")
-            // if (resp.code !==200) {
-            //     console.log("R",resp)
-            //     toolWindows.autoWarning(resp.message)
-            // } else {
-            //     toolWindows.autoMessage("完成分析", 2000)
-            //     setTimeout(() => {
-            //         window.location.href = `analysis?type=deepsearch&mode=ccta&pipe=${resp.data}`;
-            //     }, 500)
-            // }
+            // toolWindows.autoWarning("未检测到匹配项，且影像数量少于20例，请扩充特征池")
+            if (resp.code !==200) {
+                console.log("R",resp)
+                toolWindows.autoWarning(resp.msg)
+            } else {
+                toolWindows.autoMessage("完成分析", 2000)
+                setTimeout(() => {
+                    window.location.href = `analysis?type=deepsearch&mode=${mode}&StudiesUID=${studyuid}&SeriesUID=${seriesuid}&ObjectUID=${objectuid}&pipe=${resp.data}`;
+                }, 500)
+            }
         })
     }
     function deepAnalysis(db,node,studyuid,seriesuid,mode) {
@@ -421,12 +433,20 @@ $(function() {
             this.useDb = db;
             $.get(`/api/v1/pacs/${this.useDb}`).done(resp => {
                 if (resp.code === 200) {
-                    this.nodelist.empty().append($("<option>").text("All"))
+                    // this.nodelist.empty().append($("<option>").text("All"))
+                    // resp.data.forEach(node => {
+                    //     let o = $("<option>").text(node)
+                    //     this.nodelist.append(o)
+                    // })
+                    // console.log("nodelist",resp.data)
+                    // this.selectNode("all")
+                    this.nodelist.empty()
                     resp.data.forEach(node => {
                         let o = $("<option>").text(node)
                         this.nodelist.append(o)
                     })
-                    this.selectNode("all")
+                    console.log("nodelist",resp.data)
+                    this.selectNode(resp.data[0])
                 }
             })
         }
@@ -535,12 +555,13 @@ $(function() {
                     })
                 btns.push(btnView)
 
-                if (parseInt(dicomCount) >= 3) {
+                if (parseInt(dicomCount) >= 50) {
                     let btnAnalysis = $("<span/>").addClass("btn btn-warning deepAnalysis").text("特征分析")
                         .attr("studyuid", this.targetStudyUid)
                         .attr("seriesuid", SeriesUID).click(() => {
                             window.event.stopPropagation();
-                            deepAnalysis(this.useDb, this.useNode, this.targetStudyUid, SeriesUID, "ccta");
+                            let mode = (this.useDb == "db_cta")?"cta":"ccta"
+                            deepAnalysis(this.useDb, this.useNode, this.targetStudyUid, SeriesUID, mode);
                         })
                     btns.push(btnAnalysis)
                     deepSupport = true
@@ -599,7 +620,7 @@ $(function() {
                 let ObjectUID = getDICOMValue(value, '00080018');
                 let btns = []
                 if (ShowDeep) {
-                    let obj = $("<span/>").addClass("btn btn-success deepSearch").text("以图捡图")
+                    let obj = $("<span/>").addClass("btn btn-success deepSearch").text("以图检图")
                         .click(() => {
                             window.event.stopPropagation();
                             deepSearch(this.useDb, this.useNode, this.targetStudyUid, this.targetSeriesUid, ObjectUID)

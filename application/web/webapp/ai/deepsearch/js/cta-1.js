@@ -1,13 +1,31 @@
 var globaldata={};
 globaldata.index=0;
 
-showResult("目标","A","/webapp/ai_data/ct/ai_data/A1/json/");
-showResult("结果1","A","/webapp/ai_data/ct/ai_data/A2/json/");
-showResult("结果2","A","/webapp/ai_data/ct/ai_data/A3/json/");
-showResult("结果3","A","/webapp/ai_data/ct/ai_data/A4/json/");
-showResult("结果4","A","/webapp/ai_data/ct/ai_data/A5/json/");
-showResult("结果5","A","/webapp/ai_data/ct/ai_data/A6/json/");
-showResult("结果6","A","/webapp/ai_data/ct/ai_data/A7/json/");
+ses=[[1,2,3,6],[4,7,6,8],[3,2,1,4],[2,1,3,6],[5,8,4,7],[2,1,6,3]]
+tps=["A","","A","A","","A"]
+
+select=Math.floor(Math.random()*ses.length)
+ses2=ses[select]
+tps2=tps[select]
+console.log("ses:",ses2)
+
+let title="原始目标"
+ses2.forEach((a,i)=>{
+    let url=`/webapp/ai_data/ct/ai_data/A${a}/json/`
+    console.log("R",url)
+    showResult(title,tps2,url);
+    title="相似结果"
+})
+
+
+//
+// showResult("原始目标","A","/webapp/ai_data/ct/ai_data/A1/json/");
+// showResult("相似结果1","A","/webapp/ai_data/ct/ai_data/A2/json/");
+// showResult("相似结果2","A","/webapp/ai_data/ct/ai_data/A3/json/");
+// showResult("相似结果3","A","/webapp/ai_data/ct/ai_data/A5/json/");
+// showResult("结果4","A","/webapp/ai_data/ct/ai_data/A5/json/");
+// showResult("结果5","A","/webapp/ai_data/ct/ai_data/A6/json/");
+// showResult("结果6","A","/webapp/ai_data/ct/ai_data/A7/json/");
 
 /*
 //showResult("F目标","B","/webapp/ai_data/ct/ai_data/B1/json/");
@@ -43,8 +61,8 @@ function showResult(title, type, path) {
         '<h3 class="card-title">' + str + '</h3>' +
         '<div class="card-tools"><button type="button" class="btn btn-tool" ai_data-card-widget="collapse"><i class="fas fa-minus"></i></button></div></div>' +
         '<div class="card-body chart-responsive"><div class="row" style="height:400px">' +
-        '<div class="col-sm-2"><div class="btn btn-info">转至影像详情</div><br /><div id="' + id_3d + '" style="width: 100%;height: 300px"></div></div>'+
-        '<div class="col-sm-2"><img id="'+id_image+'" src="" height="300px" width="300px" style="margin-top: 50px"></div>'+
+        // '<div class="col-sm-2"><div class="btn btn-info">转至影像详情</div><br /><div id="' + id_3d + '" style="width: 100%;height: 300px"></div></div>'+
+        '<div class="col-sm-4"><img id="'+id_image+'" src="" height="300px" width="300px" style="margin-top: 50px"></div>'+
         '<div class="col-sm-4"><div id="' + id_chart1_legend + '" class="legend"></div><br /><div id="' + id_chart1 + '" style="height:360px"></div></div>' +
         '<div class="col-sm-4"><div id="' + id_chart2_legend + '" class="legend"></div><br /><div id="' + id_chart2 + '" style="height:360px"></div></div>' +
         '</div></div></div></div>';
@@ -64,7 +82,7 @@ function sec1(url,id_3d,id_chart1,id_chart1l,id_chart2,id_chart2l,id_image,path)
     let cta_data = {};
     cta_data.url = url;
 
-    show3D(id_3d, getJson(cta_data.url + "mask.json"), '#ff244e');
+    // show3D(id_3d, getJson(cta_data.url + "mask.json"), '#ff244e');
 
     cta_data.r_long = getJson(cta_data.url + "section_long.json");
     cta_data.r_short = getJson(cta_data.url + 'section_short.json');

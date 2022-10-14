@@ -7,23 +7,14 @@
 package controller
 
 import (
+	"gitee.com/uni-minds/medical-sys/global"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"path"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 var algolist []global.AlgorithmInfo
 var algofile string
-
-func init() {
-	algofile = path.Join(global.GetAppSettings().SystemAppPath, "algo.yaml")
-	if err := tools.LoadYaml(algofile, &algolist); err != nil {
-		algolist = global.DefaultAlgorithms()
-		tools.SaveYaml(algofile, algolist)
-	}
-}
 
 func AlgoGet(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, SuccessReturn(algolist))

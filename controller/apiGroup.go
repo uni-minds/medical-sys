@@ -7,10 +7,10 @@
 package controller
 
 import (
+	"gitee.com/uni-minds/medical-sys/module"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 func GroupGet(ctx *gin.Context) {
@@ -38,17 +38,29 @@ func GroupGet(ctx *gin.Context) {
 		}
 
 	case "getlistfull":
-		gids := module.UserGetGroups(uid, ctx.Query("grouptype"))
+		groupType := ctx.Query("grouptype")
+		switch groupType {
+		case "pacs_studies_id":
+			groupType = "screen_dicom"
+		case "":
+			groupType = "label"
+		case "all":
+			groupType = "*"
+		}
+
+		gids := module.UserGetGroups(uid, groupType)
 
 		type ginfo struct {
-			Gid  int
-			Name string
+			Gid   int
+			Name  string
+			GType string
 		}
+
 		data := make([]ginfo, 0)
 		for _, gid := range gids {
 			// remove administrators group
 			if gid != 1 {
-				data = append(data, ginfo{Gid: gid, Name: module.GroupGetDisplayname(gid)})
+				data = append(data, ginfo{Gid: gid, Name: module.GroupGetDisplayname(gid), GType: module.GroupGetType(gid)})
 			}
 		}
 

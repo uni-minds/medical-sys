@@ -9,10 +9,10 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type execInfo struct {

@@ -1,13 +1,17 @@
 package controller
 
 import (
+	"fmt"
+	"gitee.com/uni-minds/bridge_pacs/tools"
+	"gitee.com/uni-minds/medical-sys/database"
+	"gitee.com/uni-minds/medical-sys/module"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"uni-minds.com/liuxy/medical-sys/database"
-	"uni-minds.com/liuxy/medical-sys/module"
-	"uni-minds.com/liuxy/medical-sys/tools"
+	"strings"
 )
+
+// region define
 
 type screenListCallback struct {
 	Data       []screenSeriesDetail `json:"data"`
@@ -15,13 +19,16 @@ type screenListCallback struct {
 }
 
 type screenSeriesDetail struct {
+	PatientId       string                 `json:"patient_id"`
 	SeriesId        string                 `json:"series_id,omitempty"`
-	Memo            string                 `json:"memo,omitempty"`
 	StudiesId       string                 `json:"studies_id,omitempty"`
+	Memo            string                 `json:"memo,omitempty"`
 	StudiesMemo     string                 `json:"studies_memo,omitempty"`
 	Author          string                 `json:"author"`
 	Review          string                 `json:"reviewer"`
-	Progress        int                    `json:"progress"`
+	Progress        string                 `json:"progress"`
+	StudyDatetime   string                 `json:"studies_datetime"`
+	RecordDatetime  string                 `json:"record_datetime"`
 	InstanceDetails []screenInstanceDetail `json:"instance_details,omitempty"`
 	InstanceCount   int                    `json:"instance_count"`
 }
@@ -40,13 +47,30 @@ type screenInstanceScreen struct {
 	Value    string `json:"value"`
 }
 
+type ValueString struct {
+	Value string
+}
+
+type ValueBool struct {
+	Value bool
+}
+
+type ValueInt struct {
+	Value int
+}
+
+// endregion
+
 func ScreenGet(ctx *gin.Context) {
-	_, uid := CookieValidUid(ctx)
-	action := ctx.Query("action")
-	switch action {
+	_, exists := ctx.Get("uid")
+	if !exists {
+		return
+	}
+
+	ps := database.BridgeGetPacsServerHandler()
+	switch ctx.Query("action") {
 	case "getlist":
-		var page, count int
-		var studiesIds []string
+		var page, row, count int
 
 		gid, err := strconv.Atoi(ctx.Query("gid"))
 		if err != nil {
@@ -55,33 +79,35 @@ func ScreenGet(ctx *gin.Context) {
 			return
 		}
 
-		if page, _ = strconv.Atoi(ctx.Query("page")); page <= 0 {
+		index := 0
+
+		if page, _ = strconv.Atoi(ctx.Query("page")); page < 1 {
 			page = 1
 		}
 
-		if count, _ = strconv.Atoi(ctx.Query("count")); count <= 0 {
-			count = 20
+		if count, _ = strconv.Atoi(ctx.Query("row")); row <= 0 {
+			row = 20
 		}
 
-		index := (page - 1) * count
-
-		studiesIds, err = database.GroupGetPacsStudiesIds(gid)
-		if err != nil {
-			log("E", err.Error())
-			ctx.JSON(http.StatusOK, FailReturn(1002, err.Error()))
+		if count, err = strconv.Atoi(ctx.Query("count")); err != nil {
+			count = -1
 		}
 
-		if index >= len(studiesIds) {
-			ctx.JSON(http.StatusOK, FailReturn(1002, "out of range"))
-			return
-		}
+		index = (page - 1) * row
 
-		studiesIds = studiesIds[index:]
+		//studiesInfoList, err := ps.FindStudiesByGroupId(gid, index, count)
+		//if err != nil {
+		//	ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		//	return
+		//}
 
-		totalRemain := len(studiesIds)
+		studiesIds := module.GroupGetDicom(gid)
 
-		if count > totalRemain {
-			count = totalRemain
+		countTotal := len(studiesIds)
+		//countTotal := int(ps.CountStudiesByGroupId(gid))
+		countRemain := countTotal - index - count
+		if countRemain < 0 {
+			countRemain = 0
 		}
 
 		src := ctx.Query("src")
@@ -89,18 +115,16 @@ func ScreenGet(ctx *gin.Context) {
 		case "ui", "UI":
 			seriesDetails := make([]screenSeriesDetail, 0)
 
-			for _, studiesId := range studiesIds[0:count] {
-				studiesInfo, err := database.PacsStudiesGetInfo(studiesId)
+			//for _, studiesInfo := range studiesInfoList {
+
+			for _, studiesId := range studiesIds {
+				studiesInfo, err := ps.FindStudiesById(studiesId)
 				if err != nil {
-					log("E", err.Error())
+					log("e", err.Error())
 					continue
 				}
 
-				seriesIds, err := tools.StringDecompress(studiesInfo.IncludeSeriesID)
-				if err != nil {
-					log("E", err.Error())
-					continue
-				}
+				seriesIds := strings.Split(studiesInfo.IncludeSeries, "|")
 
 				for _, seriesId := range seriesIds {
 					seriesDetail, err := ScreenConvertDatabaseToScreenSeriesId(seriesId, false)
@@ -108,90 +132,58 @@ func ScreenGet(ctx *gin.Context) {
 						log("e", "series", err.Error())
 						continue
 					}
-					seriesDetail.StudiesId = studiesInfo.StudiesID
-					seriesDetail.StudiesMemo = studiesInfo.LabelInfo
+					seriesDetail.PatientId = studiesInfo.PatientId
+					seriesDetail.StudiesId = studiesInfo.StudiesId
+					seriesDetail.StudiesMemo = studiesInfo.LabelMemo
+					seriesDetail.Author = module.UserGetRealname(studiesInfo.LabelUidAuthor)
+					seriesDetail.Review = module.UserGetRealname(studiesInfo.LabelUidReview)
+					seriesDetail.Progress = module.ProgressQueryString(studiesInfo.LabelProgress)
+					seriesDetail.StudyDatetime = tools.TimeDecode(studiesInfo.StudyDatetime).Format("2006-01-02 15:04")
+					seriesDetail.RecordDatetime = tools.TimeDecode(studiesInfo.RecordDatetime).Format("2006-01-02 15:04")
 					seriesDetails = append(seriesDetails, seriesDetail)
 				}
 
 			}
 			callback := screenListCallback{
 				Data:       seriesDetails,
-				ItemsCount: totalRemain,
+				ItemsCount: countRemain,
 			}
 
 			ctx.JSON(http.StatusOK, SuccessReturn(callback))
 
-		default:
-			if studiesIds, err = database.GroupGetPacsStudiesIds(gid); err != nil {
-				log("E", err.Error())
-				ctx.JSON(http.StatusOK, FailReturn(1001, err.Error()))
-				return
-			}
-
-			if len(studiesIds) <= index {
-				ctx.JSON(http.StatusOK, FailReturn(1002, "list index"))
-				return
-			}
-
-			_ = database.UserSetLastStatus(uid, gid, page)
-			studiesIds = studiesIds[index:]
-
-			ctx.JSON(http.StatusOK, studiesIds)
-		}
-
-	case "getdetails":
-		seriesId := ctx.Query("series_id")
-
-		details, err := ScreenConvertDatabaseToScreenSeriesId(seriesId, true)
-		if err != nil {
-			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
-		} else {
-			ctx.JSON(http.StatusOK, SuccessReturn(details))
-		}
-
-	case "getinstance":
-		instanceId := ctx.Query("instance_id")
-		//thumbs := ctx.Query("thumbs")
-		info, err := database.PacsInstanceGetInfo(instanceId)
-		if err != nil {
-			ctx.JSON(http.StatusOK, info)
-		}
-
-	case "getmedia":
-		instanceId := ctx.Query("instance_id")
-		regen := ctx.Query("force_regen")
-		thumbSize := ctx.Query("thumb")
-		video := ctx.Query("video")
-		var bs []byte
-		var err error
-		switch thumbSize {
-		case "300":
-			bs, err = module.PacsGetInstanceThumb(instanceId)
-
-		default:
-			if video == "true" {
-				bs, _, err = module.PacsGetInstanceImage(instanceId, regen != "")
-			} else {
-				bs, _, err = module.PacsGetInstanceImage(instanceId, regen != "")
-			}
-		}
-		if err != nil {
-			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
-		} else {
-			ctx.Writer.Write(bs)
+			//default:
+			//	_ = database.UserSetLastStatus(uid, gid, page)
+			//	ctx.JSON(http.StatusOK, SuccessReturn(studiesInfoList))
 		}
 
 	case "getlock":
 		seriesId := ctx.Query("series_id")
 		_, uid := CookieValidUid(ctx)
 
-		info, err := database.PacsSeriesGetInfo(seriesId)
+		studiesId, err := module.PacsGetStudiesIdFromSeriesId(seriesId)
 		if err != nil {
 			ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
 			return
 		}
 
-		if info.LabelAuthorUid == 0 || uid == info.LabelAuthorUid || uid == info.LabelReviewUid {
+		//fmt.Println("studiesId",studiesId)
+		authorUid, err := module.PacsGetStudiesInfoAuthor(studiesId)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			return
+		}
+
+		reviewUid, err := module.PacsGetStudiesInfoReview(studiesId)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			return
+		}
+
+		fmt.Printf("uid org: author -> %d review -> %d\nuid now: %d\n", authorUid, reviewUid, uid)
+
+		if testIsMaster(uid) {
+			ctx.JSON(http.StatusOK, SuccessReturn(uid))
+		} else if authorUid == 0 || authorUid == uid || reviewUid == uid {
 			ctx.JSON(http.StatusOK, SuccessReturn(uid))
 		} else {
 			ctx.JSON(http.StatusOK, FailReturn(300, uid))
@@ -199,8 +191,327 @@ func ScreenGet(ctx *gin.Context) {
 	}
 }
 
+func testIsMaster(uid int) bool {
+	switch uid {
+	case 0, 1: // admin
+		return true
+	case 4, 6, 26: // master
+		return true
+	default:
+		return false
+	}
+}
+
+func ScreenPost(ctx *gin.Context) {
+	action := ctx.Query("action")
+	_, uid := CookieValidUid(ctx)
+	switch action {
+	case "sync":
+		//module.PacsSync("192.168.3.101:8080")
+		dh := database.BridgeGetPacsDatabaseHandler()
+		dh.Sync(true, true, 50)
+		ctx.JSON(http.StatusOK, SuccessReturn("Sync finish"))
+
+	case "author":
+		//seriesId := ctx.Query("series_id")
+		studiesId := ctx.Query("studies_id")
+
+		pi := database.BridgeGetPacsServerHandler()
+		//seriesInfo, err := pi.GetSeries(seriesId)
+		//if err != nil {
+		//	ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		//	return
+		//}
+
+		//studiesId := seriesInfo.StudiesId
+		studiesInfo, err := pi.FindStudiesById(studiesId)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+			return
+		}
+
+		if studiesInfo.LabelUidAuthor != 0 && studiesInfo.LabelUidAuthor != uid {
+			log("e", "no permission:", uid)
+			ctx.JSON(http.StatusOK, FailReturn(404, "no permission"))
+			return
+		}
+
+		switch ctx.Query("selector") {
+
+		case "submit":
+			err = pi.StudiesUpdateLabelProgress(studiesId, 2)
+			if err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn(1))
+			}
+			return
+
+		case "full":
+
+		default:
+
+		}
+	}
+}
+
+func ScreenGetStudiesOperation(ctx *gin.Context) {
+	studiesId := ctx.Param("studiesId")
+	op := ctx.Param("operation")
+
+	si := database.BridgeGetPacsServerHandler()
+	si.ShowHidden = true
+	si.ShowDelete = true
+	info, err := si.FindStudiesById(studiesId)
+	if err != nil {
+		ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		return
+	}
+
+	var value int
+
+	switch op {
+	case "hidden", "hide":
+		value = info.DbHidden
+
+	case "delete":
+		value = info.DbDelete
+
+	default:
+		ctx.JSON(http.StatusOK, FailReturn(404, "operation unknown"))
+		return
+	}
+
+	switch value {
+	case 1:
+		ctx.JSON(http.StatusOK, SuccessReturn(true))
+
+	default:
+		ctx.JSON(http.StatusOK, SuccessReturn(false))
+	}
+}
+func ScreenPostStudiesOperation(ctx *gin.Context) {
+	studiesId := ctx.Param("studiesId")
+	op := ctx.Param("operation")
+
+	si := database.BridgeGetPacsServerHandler()
+
+	var data ValueBool
+
+	err := ctx.BindJSON(&data)
+	if err != nil {
+		ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		return
+	}
+
+	switch op {
+	case "hidden", "hide":
+		err = si.StudiesSetTagHidden(studiesId, data.Value)
+
+	case "delete":
+		err = si.StudiesSetTagDelete(studiesId, data.Value)
+
+	default:
+		fmt.Println(studiesId, op, data)
+	}
+
+	if err != nil {
+		ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+	} else {
+		ctx.JSON(http.StatusOK, SuccessReturn(data))
+	}
+}
+
+func ScreenGetSeriesOperation(ctx *gin.Context) {
+	studiesId := ctx.Param("studiesId")
+	seriesId := ctx.Param("seriesId")
+	op := ctx.Param("operation")
+	fmt.Println(op, studiesId, seriesId)
+
+	switch op {
+	case "memo":
+		memo, err := module.PacsGetSeriesMemo(seriesId)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		} else {
+			ctx.JSON(http.StatusOK, SuccessReturn(memo))
+		}
+
+	case "info":
+		info, err := module.PacsGetSeriesInfo(seriesId)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		} else {
+			ctx.JSON(http.StatusOK, SuccessReturn(info))
+		}
+
+	case "details":
+		details, err := ScreenConvertDatabaseToScreenSeriesId(seriesId, true)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		} else {
+			ctx.JSON(http.StatusOK, SuccessReturn(details))
+		}
+
+	default:
+		ctx.JSON(http.StatusOK, FailReturn(404, "unknown operation"))
+	}
+}
+func ScreenPostSeriesOperation(ctx *gin.Context) {
+	studiesId := ctx.Param("studiesId")
+	seriesId := ctx.Param("seriesId")
+	_, uid := CookieValidUid(ctx)
+	op := ctx.Param("operation")
+	fmt.Println(uid, op, studiesId, seriesId)
+
+	switch op {
+	case "submit":
+		action := ctx.Query("action")
+
+		pi := database.BridgeGetPacsServerHandler()
+		switch action {
+		case "author":
+			info, _ := pi.FindStudiesById(studiesId)
+			nextProgress := 2
+			switch info.LabelProgress {
+			case 4:
+				nextProgress = 5
+			}
+			err := pi.StudiesUpdateLabelProgress(studiesId, nextProgress) //提交待审核
+			if err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn(nextProgress))
+			}
+
+		case "review_reject":
+			nextProgress := 4
+			if err := pi.StudiesUpdateLabelUidReview(studiesId, uid); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			}
+			if err := pi.StudiesUpdateLabelProgress(studiesId, nextProgress); err != nil { // 审核拒绝
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn(module.ProgressQueryString(nextProgress)))
+			}
+
+			//pi.UpdateStudiesLabelUidReview()
+
+		case "review_approve":
+			nextProgress := 7 // 审核拒绝
+			if err := pi.StudiesUpdateLabelUidReview(studiesId, uid); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			}
+			if err := pi.StudiesUpdateLabelProgress(studiesId, nextProgress); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			} else {
+				ctx.JSON(http.StatusOK, SuccessReturn(module.ProgressQueryString(nextProgress)))
+			}
+
+		default:
+			ctx.JSON(http.StatusOK, FailReturn(404, "unknown operation"))
+
+		}
+
+	case "memo":
+		var data ValueString
+		err := ctx.BindJSON(&data)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		} else if err = module.PacsSetSeriesMemo(seriesId, data.Value); err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		} else {
+			ctx.JSON(http.StatusOK, SuccessReturn(data.Value))
+		}
+
+	default:
+		ctx.JSON(http.StatusOK, FailReturn(404, "unknown operation"))
+	}
+}
+
+func ScreenGetInstanceOperation(ctx *gin.Context) {
+	studiesId := ctx.Param("studiesId")
+	seriesId := ctx.Param("seriesId")
+	instanceId := ctx.Param("instanceId")
+	_, uid := CookieValidUid(ctx)
+	op := ctx.Param("operation")
+	pi := database.BridgeGetPacsServerHandler()
+	fmt.Println(uid, op, studiesId, seriesId, instanceId)
+
+	switch op {
+	case "info":
+		info, err := pi.FindInstanceByIdLocal(instanceId)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		} else {
+			ctx.JSON(http.StatusOK, SuccessReturn(info))
+		}
+	}
+}
+func ScreenPostInstanceOperation(ctx *gin.Context) {
+	uid := -1
+	if value, exists := ctx.Get("uid"); !exists {
+		return
+	} else {
+		uid = value.(int)
+	}
+
+	studiesId := ctx.Param("studiesId")
+	instanceId := ctx.Param("instanceId")
+	op := ctx.Param("operation")
+
+	pi := database.BridgeGetPacsServerHandler()
+
+	switch op {
+	case "submit":
+		var data screenInstanceScreen
+		var err error
+		if err = ctx.BindJSON(&data); err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+			return
+		}
+
+		switch ctx.Query("action") {
+		default:
+			if err = pi.StudiesUpdateLabelUidAuthor(studiesId, uid); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+				return
+			} else if err = pi.StudiesUpdateLabelProgress(studiesId, 1); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+				return
+			}
+
+		case "review":
+			if err = pi.StudiesUpdateLabelUidReview(studiesId, uid); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+				return
+			} else if err = pi.StudiesUpdateLabelProgress(studiesId, 5); err != nil {
+				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+				return
+			}
+		}
+
+		switch data.Selector {
+		case "view":
+			err = pi.InstanceUpdateLabelTag(instanceId, "label_view", data.Value)
+		case "diagnose":
+			err = pi.InstanceUpdateLabelTag(instanceId, "label_diagnose", data.Value)
+		case "interfere":
+			err = pi.InstanceUpdateLabelTag(instanceId, "label_interfere", data.Value)
+		}
+
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+		} else {
+			ctx.JSON(http.StatusOK, SuccessReturn(data.Value))
+		}
+	}
+}
+
 func ScreenConvertDatabaseToScreenSeriesId(seriesId string, includeInstanceDetails bool) (detail screenSeriesDetail, err error) {
-	seriesInfo, err := database.PacsSeriesGetInfo(seriesId)
+	ps := database.BridgeGetPacsServerHandler()
+
+	seriesInfo, err := ps.FindSeriesByIdLocal(seriesId)
 	if err != nil {
 		log("E", err.Error())
 		return detail, err
@@ -208,7 +519,7 @@ func ScreenConvertDatabaseToScreenSeriesId(seriesId string, includeInstanceDetai
 
 	details := make([]screenInstanceDetail, 0)
 
-	instanceIds, err := tools.StringDecompress(seriesInfo.IncludeInstanceID)
+	instanceIds := strings.Split(seriesInfo.IncludeInstances, "|")
 	if includeInstanceDetails {
 		for _, instanceId := range instanceIds {
 			instanceDetail, err := ScreenConvertDatabaseToInstanceId(instanceId)
@@ -223,38 +534,29 @@ func ScreenConvertDatabaseToScreenSeriesId(seriesId string, includeInstanceDetai
 	}
 
 	detail = screenSeriesDetail{
-		SeriesId:        seriesInfo.SeriesID,
-		Memo:            seriesInfo.LabelInfo,
-		StudiesId:       "",
+		SeriesId:        seriesInfo.SeriesId,
+		Memo:            seriesInfo.LabelMemo,
+		StudiesId:       seriesInfo.StudiesId,
 		StudiesMemo:     "",
 		InstanceDetails: details,
 		InstanceCount:   len(instanceIds),
 	}
 
-	if seriesInfo.LabelAuthorUid > 0 {
-		detail.Author = module.UserGetRealname(seriesInfo.LabelAuthorUid)
-	}
-
-	if seriesInfo.LabelProgress > 0 {
-		detail.Progress = seriesInfo.LabelProgress
-	}
-
-	if seriesInfo.LabelReviewUid > 0 {
-		detail.Review = module.UserGetRealname(seriesInfo.LabelReviewUid)
-	}
 	return detail, nil
 }
 
 func ScreenConvertDatabaseToInstanceId(instanceId string) (detail screenInstanceDetail, err error) {
-	instanceInfo, err := database.PacsInstanceGetInfo(instanceId)
+	ps := database.BridgeGetPacsServerHandler()
+
+	instanceInfo, err := ps.FindInstanceByIdLocal(instanceId)
 	if err != nil {
 		log("E", err.Error())
 		return detail, err
 	}
 
 	detail = screenInstanceDetail{
-		InstanceId:     instanceInfo.InstanceID,
-		Memo:           instanceInfo.Memo,
+		InstanceId:     instanceInfo.InstanceId,
+		Memo:           instanceInfo.LabelMemo,
 		Frames:         instanceInfo.Frames,
 		LabelView:      instanceInfo.LabelView,
 		LabelDiagnose:  instanceInfo.LabelDiagnose,
@@ -264,66 +566,25 @@ func ScreenConvertDatabaseToInstanceId(instanceId string) (detail screenInstance
 	return detail, nil
 }
 
-func ScreenPost(ctx *gin.Context) {
-	var err error
-	action := ctx.Query("action")
-	_, uid := CookieValidUid(ctx)
-	switch action {
-	case "sync":
-		module.PacsSync("192.168.3.101:8080")
-		ctx.JSON(http.StatusOK, SuccessReturn("Sync finish"))
-
-	case "author":
-		//studies_id := ctx.Query("studies_id")
-		series_id := ctx.Query("series_id")
-		instanceId := ctx.Query("instance_id")
-
-		switch ctx.Query("selector") {
-		case "memo":
-
-		case "submit":
-			err = module.PacsSetSeriesAuthorLabel(series_id, uid, 2)
-			if err != nil {
-				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
-			} else {
-				ctx.JSON(http.StatusOK, SuccessReturn(1))
-			}
-			return
-
-		case "full":
-
-		default:
-			var data screenInstanceScreen
-
-			err = module.PacsSetSeriesAuthorLabel(series_id, uid, 1)
-			if err != nil {
-				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
-			}
-
-			err = ctx.BindJSON(&data)
-			if err != nil {
-				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
-			}
-
-			switch data.Selector {
-			case "view":
-				err = module.PacsInstanceUpdateLabel(series_id, instanceId, uid, data.Value, "", "")
-			case "diagnose":
-				err = module.PacsInstanceUpdateLabel(series_id, instanceId, uid, "", data.Value, "")
-			case "interfere":
-				err = module.PacsInstanceUpdateLabel(series_id, instanceId, uid, "", "", data.Value)
-			}
-
-			if err != nil {
-				log("e", err.Error())
-				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
-			} else {
-				ctx.JSON(http.StatusOK, SuccessReturn(data.Value))
-			}
-		}
-	}
-}
-
 func ScreenDelete(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, SuccessReturn("OK Delete"))
+	studiesId := ctx.Query("studies_id")
+
+	_, uid := CookieValidUid(ctx)
+
+	pi := database.BridgeGetPacsServerHandler()
+	info, err := pi.FindStudiesById(studiesId)
+	if err != nil {
+		ctx.JSON(http.StatusOK, FailReturn(400, "异常"))
+		return
+	}
+
+	if info.LabelUidAuthor != uid {
+		ctx.JSON(http.StatusOK, FailReturn(400, "非标注人，禁止操作"))
+		return
+	}
+
+	pi.StudiesUpdateLabelProgress(studiesId, 0)
+	pi.StudiesUpdateLabelUidAuthor(studiesId, 0)
+
+	ctx.JSON(http.StatusOK, SuccessReturn("OK"))
 }

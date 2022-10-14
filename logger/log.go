@@ -25,6 +25,7 @@ var logger *log.Logger
 var fp *os.File
 
 func init() {
+	fmt.Println("init: log")
 	logger = log.New()
 	logger.SetFormatter(&log.JSONFormatter{})
 }

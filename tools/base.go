@@ -8,7 +8,7 @@ package tools
 
 import (
 	"fmt"
-	"uni-minds.com/liuxy/medical-sys/logger"
+	"gitee.com/uni-minds/medical-sys/logger"
 )
 
 const tag = "TOOL"

@@ -9,13 +9,13 @@ package module
 import (
 	"errors"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/global"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
-	"uni-minds.com/liuxy/medical-sys/global"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type CCTA_PARAMS struct {
@@ -51,7 +51,8 @@ func algoCtaGetFeatures() (aid string, err error) {
 func AlgoCctaGetFeatureResult(aid, part string) (result map[string]string) {
 	result = make(map[string]string)
 
-	fileDir := path.Join(global.GetAppSettings().SystemAppPath, "ai_data/ccta/result/json")
+	log("i", aid, part)
+	fileDir := path.Join(global.GetAppSettings().PathApp, "ai_data/ccta/result", aid, "json")
 	if part != "" {
 		file := path.Join(fileDir, fmt.Sprintf("%s.json", strings.ToLower(part)))
 		log("i", "get part", part, "from file:", file)

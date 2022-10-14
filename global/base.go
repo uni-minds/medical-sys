@@ -7,8 +7,8 @@
 package global
 
 import (
-	"uni-minds.com/liuxy/medical-sys/logger"
-	"uni-minds.com/liuxy/medical-sys/tools"
+	"gitee.com/uni-minds/medical-sys/logger"
+	"gitee.com/uni-minds/medical-sys/tools"
 )
 
 const tag = "GLOB"

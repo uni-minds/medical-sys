@@ -8,8 +8,8 @@ package global
 
 import (
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/tools"
 	"time"
-	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 var config AppSettings
@@ -21,9 +21,12 @@ type AppSettings struct {
 	CookieMaxAge       int
 	SystemListenPort   int
 	SystemUseHttps     bool
-	SystemAppPath      string
-	SystemMediaPath    string
-	SystemDBFile       string
+	PathApp            string
+	PathMedia          string
+	PathPacsMediaCache string
+	DbFileMain         string
+	DbFilePacs         string
+	DbFileHis          string
 	SystemLogFolder    string
 }
 
@@ -34,15 +37,19 @@ type Version struct {
 }
 
 func init() {
+	fmt.Println("module init: global")
 	config = AppSettings{
 		UserRegisterEnable: true,
-		UserRegisterCode:   "beihang",
+		UserRegisterCode:   "BUAA",
 		CookieMaxAge:       24 * int(time.Hour.Seconds()),
 		SystemListenPort:   80,
 		SystemUseHttps:     false,
-		SystemAppPath:      "/usr/local/uni-ledger/medical-sys/application",
-		SystemMediaPath:    "/usr/local/uni-ledger/medical-sys/application/media",
-		SystemDBFile:       "/usr/local/uni-ledger/medical-sys/application/database/db.sqlite",
+		PathApp:            "/usr/local/uni-ledger/medical-sys/application",
+		PathMedia:          "/usr/local/uni-ledger/medical-sys/application/media",
+		PathPacsMediaCache: "/data/cache",
+		DbFileMain:         "/usr/local/uni-ledger/medical-sys/application/database/db.sqlite",
+		DbFilePacs:         "/usr/local/uni-ledger/medical-sys/application/database/db_pacs.sqlite",
+		DbFileHis:          "/usr/local/uni-ledger/medical-sys/application/database/db_his.sqlite",
 		SystemLogFolder:    "/usr/local/uni-ledger/medical-sys/log",
 	}
 	loadConfig(configFile)

@@ -42,3 +42,16 @@ func AiDemoCctaSearchDummy(data DeepSearch) (sid string, err error) {
 	time.Sleep(1 * time.Second)
 	return "sid1", nil
 }
+
+func AiDemoCtaAnalysisDummy(data DeepBuild) (aid string, err error) {
+	log("w", "deep build/cta", data)
+	time.Sleep(3 * time.Second)
+	return "aid1", nil
+}
+
+func AiDemoCtaSearchDummy(data DeepSearch) (sid string, err error) {
+	log("w", "deep search/cta", data)
+	time.Sleep(1 * time.Second)
+
+	return "sid1", nil
+}
