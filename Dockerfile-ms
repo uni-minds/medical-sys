@@ -1,0 +1,13 @@
+FROM ffmpeg:v1
+WORKDIR /usr/local/uni-ledger/medical-sys/application/
+COPY application/web web/
+WORKDIR /usr/local/uni-ledger/medical-sys/
+COPY docker-config.yaml ./config.yaml
+WORKDIR /data/database
+COPY application/database/*.sqlite ./
+WORKDIR /usr/bin
+COPY build/medical_sys build/medical_sys_tools ./
+EXPOSE 80
+VOLUME /data
+#ENTRYPOINT ["docker-entrypoint.sh","medical_sys"]
+CMD ["medical_sys"]

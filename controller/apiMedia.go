@@ -336,7 +336,7 @@ func MediaGetData(mediaIndex string, uid int, mediaType string) ([]byte, error) 
 				fmp4 = fmt.Sprintf("%s.mp4", fogv)
 				if _, err := os.Stat(fmp4); err != nil {
 					fmt.Printf("ffmpeg convert: %s => %s\n", fogv, fmp4)
-					if err := tools.FFmpegToH264(fogv, fmp4); err != nil {
+					if err := tools.FfConv(fogv, fmp4, "h264"); err != nil {
 						fmt.Println("E;ffmpeg convert:", err.Error())
 						return nil, err
 					}

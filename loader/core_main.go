@@ -14,6 +14,8 @@ import (
 	"gitee.com/uni-minds/medical-sys/global"
 	"gitee.com/uni-minds/medical-sys/logger"
 	"gitee.com/uni-minds/medical-sys/module"
+	"gitee.com/uni-minds/medical-sys/router"
+	"gitee.com/uni-minds/medical-sys/rpc"
 	"gitee.com/uni-minds/medical-sys/tools"
 	"github.com/fatih/color"
 	"path"
@@ -62,9 +64,9 @@ func main() {
 	logger.Init(path.Join(config.SystemLogFolder, "medical-sys.log"), argVerbose)
 	global.DebugSetFlag(argDebug)
 
-	go RpcServer()
+	go rpc.RpcServer()
 
-	router()
+	router.Router()
 }
 
 func logo(version string) {

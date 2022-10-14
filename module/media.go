@@ -244,7 +244,7 @@ func MediaImport(input, displayName, memo string, ownerUid int) (mi database.Med
 	}
 
 	ogvfile := path.Join(ogvroot, filename+".ogv")
-	if err = tools.FFmpegToOGV(input, ogvfile); err != nil {
+	if err = tools.FfConv(input, ogvfile, "ogv"); err != nil {
 		return
 	}
 	//
@@ -255,7 +255,7 @@ func MediaImport(input, displayName, memo string, ownerUid int) (mi database.Med
 	//}
 
 	giffile := path.Join(gifroot, filename+".gif")
-	if err = tools.FFmpegToGIF(input, giffile); err != nil {
+	if err = tools.FfConv(input, giffile, "gif"); err != nil {
 		return
 	}
 
@@ -270,7 +270,7 @@ func MediaImport(input, displayName, memo string, ownerUid int) (mi database.Med
 	return
 }
 func MediaInfo(mediafile string) (width, height, frames int, duration float64, codec string, err error) {
-	info, err := tools.FFprobe(mediafile)
+	info, err := tools.FfProbe(mediafile)
 	if err != nil {
 		return
 	}

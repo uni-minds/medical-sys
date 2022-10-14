@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gitee.com/uni-minds/bridge_pacs/tools"
 	"gitee.com/uni-minds/medical-sys/database"
+	"gitee.com/uni-minds/medical-sys/global"
 	"gitee.com/uni-minds/medical-sys/module"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -57,6 +58,10 @@ type ValueBool struct {
 
 type ValueInt struct {
 	Value int
+}
+
+type ValueAdmin struct {
+	Admin string
 }
 
 // endregion
@@ -209,7 +214,7 @@ func ScreenPost(ctx *gin.Context) {
 	case "sync":
 		//module.PacsSync("192.168.3.101:8080")
 		dh := database.BridgeGetPacsDatabaseHandler()
-		dh.Sync(true, true, 50)
+		dh.Sync(true, 50)
 		ctx.JSON(http.StatusOK, SuccessReturn("Sync finish"))
 
 	case "author":
@@ -276,6 +281,8 @@ func ScreenGetStudiesOperation(ctx *gin.Context) {
 
 	case "delete":
 		value = info.DbDelete
+
+	case "update":
 
 	default:
 		ctx.JSON(http.StatusOK, FailReturn(404, "operation unknown"))
@@ -363,6 +370,7 @@ func ScreenPostSeriesOperation(ctx *gin.Context) {
 	_, uid := CookieValidUid(ctx)
 	op := ctx.Param("operation")
 	fmt.Println(uid, op, studiesId, seriesId)
+	si := database.BridgeGetPacsServerHandler()
 
 	switch op {
 	case "submit":
@@ -413,6 +421,14 @@ func ScreenPostSeriesOperation(ctx *gin.Context) {
 
 		}
 
+	case "delete":
+		err := si.RemoveSeries(studiesId, seriesId, true)
+		if err != nil {
+			ctx.JSON(http.StatusOK, FailReturn(404, err.Error()))
+		} else {
+			ctx.JSON(http.StatusOK, SuccessReturn("Deleted"))
+		}
+
 	case "memo":
 		var data ValueString
 		err := ctx.BindJSON(&data)
@@ -427,6 +443,36 @@ func ScreenPostSeriesOperation(ctx *gin.Context) {
 	default:
 		ctx.JSON(http.StatusOK, FailReturn(404, "unknown operation"))
 	}
+}
+
+func ScreenDeleteSeries(ctx *gin.Context) {
+	studiesId := ctx.Param("studiesId")
+	//seriesId := ctx.Param("seriesId")
+	_, uid := CookieValidUid(ctx)
+
+	var value ValueAdmin
+	err := ctx.BindJSON(&value)
+	if err != nil {
+		ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
+		return
+	}
+
+	pi := database.BridgeGetPacsServerHandler()
+	info, err := pi.FindStudiesById(studiesId)
+	if err != nil {
+		ctx.JSON(http.StatusOK, FailReturn(400, "异常"))
+		return
+	}
+
+	if value.Admin != "" && value.Admin != global.DefAdminPassword && info.LabelUidAuthor != uid {
+		ctx.JSON(http.StatusOK, FailReturn(400, "非标注人，禁止操作"))
+		return
+	}
+
+	pi.StudiesUpdateLabelProgress(studiesId, 0)
+	pi.StudiesUpdateLabelUidAuthor(studiesId, 0)
+
+	ctx.JSON(http.StatusOK, SuccessReturn("OK"))
 }
 
 func ScreenGetInstanceOperation(ctx *gin.Context) {
@@ -564,27 +610,4 @@ func ScreenConvertDatabaseToInstanceId(instanceId string) (detail screenInstance
 	}
 
 	return detail, nil
-}
-
-func ScreenDelete(ctx *gin.Context) {
-	studiesId := ctx.Query("studies_id")
-
-	_, uid := CookieValidUid(ctx)
-
-	pi := database.BridgeGetPacsServerHandler()
-	info, err := pi.FindStudiesById(studiesId)
-	if err != nil {
-		ctx.JSON(http.StatusOK, FailReturn(400, "异常"))
-		return
-	}
-
-	if info.LabelUidAuthor != uid {
-		ctx.JSON(http.StatusOK, FailReturn(400, "非标注人，禁止操作"))
-		return
-	}
-
-	pi.StudiesUpdateLabelProgress(studiesId, 0)
-	pi.StudiesUpdateLabelUidAuthor(studiesId, 0)
-
-	ctx.JSON(http.StatusOK, SuccessReturn("OK"))
 }

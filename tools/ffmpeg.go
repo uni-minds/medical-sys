@@ -10,40 +10,33 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	ffmpeg "github.com/u2takey/ffmpeg-go"
 	"io"
 	"os/exec"
 	"strconv"
 )
 
-func FFmpegToH264(input, output string) error {
-	ok, _, output, ec := execCommand("ffmpeg", []string{"-i", input, "-b:v", "50000K", "-vcodec", "h264", "-y", output})
-	if !ok {
-		return errors.New("E;FFMPEGConvert")
+func FfConv(input, output, tp string) error {
+	kwargs := make(map[string]interface{})
+	switch tp {
+	case "h264":
+		kwargs["b:v"] = "50000K"
+		kwargs["vcodec"] = "h264"
+
+	case "gif":
+		kwargs["s"] = "640x480"
+		kwargs["vcodec"] = "gif"
+		kwargs["r"] = "15"
+
+	case "ogv":
+		kwargs["b:v"] = "50000K"
+		kwargs["vcodec"] = "libtheora"
+
 	}
-	if ec != 0 {
-		fmt.Println(output)
-		return errors.New("error code:" + strconv.Itoa(ec))
-	}
-	return nil
+	return ffmpeg.Input(input).Output(output, kwargs).OverWriteOutput().Run()
 }
 
-func FFmpegToGIF(input, output string) error {
-	ok, _, _, _ := execCommand("ffmpeg", []string{"-i", input, "-s", "640x480", "-vcodec", "gif", "-r", "15", "-y", output})
-	if !ok {
-		return errors.New("E;FFMPEGConvert")
-	}
-	return nil
-}
-
-func FFmpegToOGV(input, output string) error {
-	ok, _, _, _ := execCommand("ffmpeg", []string{"-i", input, "-b:v", "50000K", "-vcodec", "libtheora", "-y", output})
-	if !ok {
-		return errors.New("E;FFMPEGConvert")
-	}
-	return nil
-}
-
-func FFprobe(input string) (data string, err error) {
+func FfProbe(input string) (data string, err error) {
 	ok, data, _, ec := execCommand("ffprobe", []string{"-show_streams", input})
 	if !ok {
 		fmt.Println("E")

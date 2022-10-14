@@ -60,7 +60,7 @@ const (
 	DefGroupUngrouped     = "Ungrouped"
 	DefGroupUngroupedName = "未分组"
 
-	DefAdminPassport = "admin@az"
+	DefAdminPassword = "admin@az"
 )
 
 const TimeFormat = "2006-01-02 15:04:05"

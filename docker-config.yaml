@@ -1,0 +1,12 @@
+userregisterenable: true
+userregistercode: BUAA
+cookiemaxage: 86400
+systemlistenport: 80
+systemusehttps: false
+pathapp: /usr/local/uni-ledger/medical-sys/application
+pathmedia: /data/media
+pathpacsmediacache: /data/cache
+dbfilemain: /data/database/db.sqlite
+dbfilepacs: /data/database/db_pacs.sqlite
+dbfilehis: /data/database/db_his.sqlite
+systemlogfolder: /data/log

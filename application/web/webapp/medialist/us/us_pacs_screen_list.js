@@ -1,6 +1,7 @@
 // $.jgrid.defaults.styleUI = 'Bootstrap4';
 $.jgrid.defaults.iconSet = 'fontAwesome';
-let def_show_btn_hidden = 1
+let def_show_btn_admin = 1
+let def_show_btn_review = 1
 
 function page_resize() {
     let boxWidth = $(".card").outerWidth()
@@ -94,22 +95,17 @@ class tbObj {
     }
 
     oprRender(data, options, row) {
-        // console.log(options,row)
-        let  isReadonly = (row['progress'] === '审核完成')
+        let isReadonly = (row['progress'] === '审核完成')
 
         let obj = $('<div class="row">')
         obj.append(`<div class='btn btn-info btn-xs' style="margin-right: 5px" onClick='OpSearchHis("${row.patient_id}")'>报告</div>`)
         obj.append(`<div class='btn btn-primary btn-xs' style="margin-right: 5px" onClick='OpScreenTool("${row.studies_id}","${row.series_id}","${row.patient_id}",${isReadonly})'>挑图</div>`)
-        if (row['progress'] === '待审核' ||row['progress'] === '待重审' ) {
-            obj.append(`<div class='btn btn-primary btn-xs' style="margin-right: 5px" onClick='OpScreenTool("${row.studies_id}","${row.series_id}","${row.patient_id}",1)'>审核</div>`)
+        if (def_show_btn_review && (row['progress'] === '待审核' || row['progress'] === '待重审')) {
+            obj.append(`<div class='btn btn-dark btn-xs' style="margin-right: 5px" onClick='OpScreenTool("${row.studies_id}","${row.series_id}","${row.patient_id}",1)'>审核</div>`)
         }
-        obj.append(`<div class='btn btn-warning btn-xs' style="margin-right: 5px" onClick='OpClean("${row.studies_id}","${row.series_id}")'>清除</div>`)
-
-        if (def_show_btn_hidden) {
-            obj.append(`<div class='btn btn-danger btn-xs' style="margin-right: 5px" onClick='OpHideStudies("${row.studies_id}")'>隐藏</div>`)
+        if (def_show_btn_admin) {
+            obj.append(`<div class='btn btn-danger btn-xs' style="margin-right: 5px" onClick='OpAdmin("${row.studies_id}","${row.series_id}","${row.patient_id}")'>管理</div>`)
         }
-        // let html = "<table class='table-borderless table table-primary table-valign-middle d-table-row'><tbody><tr class='d-table d-table-row'><td class='d-table-cell'><div type='button' class='btn btn-primary btn-xs'>挑图</div></td><td><div type='button' class='btn btn-primary btn-xs'>2</div></td></tr></tbody></table>"
-
         return obj.html()
     }
 
@@ -122,39 +118,7 @@ class tbObj {
     }
 }
 
-function OpClean(studiesId, seriesId) {
-    Swal.fire({
-        icon: 'warning',
-        title: '清除人员信息',
-        text: "将清空标注人员关联，并重置标注进度！",
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: '确认删除',
-        cancelButtonText: '取消',
-    }).then((result) => {
-        if (result.isConfirmed) {
-            let u = `/api/v1/screen?studies_id=${studiesId}&series_id=${seriesId}`
-            $.ajax({
-                url: u,
-                type: "delete",
-                contentType: "application/json",
-                dataType: "json",
-                data: "",
-                success: function (resp) {
-                    if (resp.code !== 200) {
-                        windowError(resp.msg)
-                    } else {
-                        windowMessage('已清除！', '标注与人员的关联信息已清除.')
-                        tbo.reload()
-                    }
-                },
-            });
-        }
-    })
-}
-
-function OpScreenTool(studiesId,seriesId,patientId,review,readonly) {
+function OpScreenTool(studiesId, seriesId, patientId, review, readonly) {
     let u = `/api/v1/screen?action=getlock&type=us&studies_id=${studiesId}&series_id=${seriesId}`
     $.get(u, result => {
         // console.log(result)
@@ -164,35 +128,115 @@ function OpScreenTool(studiesId,seriesId,patientId,review,readonly) {
             window.open(targetURL, "", 'fullscreen, toolbar=no, menubar=no, scrollbars=no, resizable=no,location=no, status=no')
         } else {
             console.log(result)
-            windowError("其它用户正在标注本视频，请等待或选择其它数据处理。",2000)
+            windowError("其它用户正在标注本视频，请等待或选择其它数据处理。", 2000)
         }
     })
 }
 
-function OpHideStudies(studiesId) {
-    Swal.fire({
+async function OpAdmin(studiesId, seriesId, patientId) {
+    const inputOptions = new Promise((resolve) => {
+        setTimeout(() => {
+            resolve({
+                'adminRemoveLabel': '清除挑图数据',
+                'adminHide': '隐藏',
+                'adminDelete': '删除',
+                '': '取消'
+            })
+        }, 0)
+    })
+
+    const {value: opAdmin} = await Swal.fire({
+        icon: 'question',
+        title: '数据管理',
+        html: `<table class="table table-bordered"><tr><td>Patient Id</td><td>${patientId}</td></tr><tr><td>Studies Id</td><td>${studiesId}</td></tr><tr><td>Series Id</td><td>${seriesId}</td></tr></table>`,
+        input: 'radio',
+        width: '600px',
+        inputOptions: inputOptions,
+    })
+
+    if (!opAdmin) {
+        return
+    }
+
+    const retData = await Swal.fire({
         icon: 'warning',
-        title: '隐藏本实例',
-        text: "本实例将被隐藏",
+        html: `请输入管理密码用于:<br>${opAdmin}`,
+        input: 'text',
+        inputAttributes: {
+            autocapitalize: 'off'
+        },
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: '确认',
         cancelButtonText: '取消',
-    }).then((result) => {
-        if (result.isConfirmed) {
-            let u = `/api/v1/screen/studies/${studiesId}/hidden`
-            let data = {}
-            data["value"] = true
-            $.post(u, JSON.stringify(data), result => {
-                console.log(result)
-                if (result.code === 200) {
-                    windowMessage('完成', '本关联实例已隐藏.',1000)
-                    tbo.reload()
-                } else {
-                    windowError(result.msg)
-                }
-            });
+    })
+
+    if (!retData.isConfirmed) {
+        return
+    }
+
+    let pwd = (retData.value) ? retData.value : ""
+    switch (opAdmin) {
+        case "adminHide":
+            OpHideStudies(studiesId, seriesId, pwd)
+            break
+
+        case "adminDelete":
+            OpDeleteSeries(studiesId, seriesId, pwd)
+            break
+
+        case "adminRemoveLabel":
+            OpClean(studiesId, seriesId, pwd)
+            break
+    }
+}
+
+function OpClean(studiesId, seriesId, pwd) {
+    let u = `/api/v1/screen/studies/${studiesId}/series/${seriesId}`
+    $.ajax({
+        url: u,
+        type: "delete",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify({"admin": pwd}),
+        success: function (resp) {
+            if (resp.code !== 200) {
+                windowError(resp.msg)
+            } else {
+                windowMessage('已清除！', '标注与人员的关联信息已清除.')
+                tbo.reload()
+            }
+        },
+    });
+}
+
+function OpHideStudies(studiesId, seriesId, pwd) {
+    let u = `/api/v1/screen/studies/${studiesId}/hidden`
+    let data = {}
+    data["value"] = true
+    data["admin"] = pwd
+    $.post(u, JSON.stringify(data), result => {
+        if (result.code === 200) {
+            windowMessage('完成', '本关联实例已隐藏.', 1000)
+            tbo.reload()
+        } else {
+            windowError(result.msg)
+        }
+    });
+}
+
+function OpDeleteSeries(studiesId, seriesId, pwd) {
+    let u = `/api/v1/screen/studies/${studiesId}/series/${seriesId}/delete`
+    let data = {}
+    data["value"] = true
+    data["admin"] = pwd
+    $.post(u, JSON.stringify(data), result => {
+        if (result.code === 200) {
+            windowMessage('完成', '本实例已删除.', 1000)
+            tbo.reload()
+        } else {
+            windowError(result.msg)
         }
     });
 }
@@ -268,7 +312,7 @@ class ScreenList {
         this.cardBody = $("<div class='card-body p-0'/>");
         this.cardContainer.append(this.cardBody);
         tbo.init(this.cardBody)
-        tbo.load(gid, lastPageIndex, -1,-1)
+        tbo.load(gid, lastPageIndex, -1, -1)
     }
 
 }

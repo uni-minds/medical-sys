@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"gitee.com/uni-minds/medical-sys/rpc"
 	"github.com/fatih/color"
 	"net/rpc/jsonrpc"
 	"os"
@@ -16,7 +17,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var res RpcResponse
+	var res rpc.RpcResponse
 	var input string
 
 	for {
@@ -33,7 +34,7 @@ func main() {
 			os.Exit(0)
 
 		} else {
-			req := RpcRequest{
+			req := rpc.RpcRequest{
 				Command: p[0],
 				Param:   p[1:],
 			}

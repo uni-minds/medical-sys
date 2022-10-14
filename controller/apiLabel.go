@@ -146,7 +146,7 @@ func LabelPost(ctx *gin.Context) {
 			}
 
 		case "revoke":
-			if ldata.Admin == global.DefAdminPassport {
+			if ldata.Admin == global.DefAdminPassword {
 				fmt.Println("review revoke")
 				if err := module.LabelRevokeReview(mediaIndex, 0, true); err != nil {
 					ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
@@ -170,7 +170,7 @@ func LabelDelete(ctx *gin.Context) {
 
 	switch ctx.Param("op") {
 	case "full":
-		if ldata.Admin == global.DefAdminPassport {
+		if ldata.Admin == global.DefAdminPassword {
 			if err := module.LabelDelete(mediaIndex); err != nil {
 				ctx.JSON(http.StatusOK, FailReturn(400, err.Error()))
 			} else {
