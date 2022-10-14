@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>{{.title}}</title>
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="../../plugins/fontawesome-free/css/all.min.css">
+    <!-- icheck bootstrap -->
+    <link rel="stylesheet" href="../../plugins/icheck-bootstrap/icheck-bootstrap.min.css">
+    <!-- Theme style -->
+    <link rel="stylesheet" href="../../dist/css/adminlte.min.css">
+    <!-- SweetAlert2 -->
+    <link rel="stylesheet" href="../../plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
+    <!-- Google Font: Source Sans Pro -->
+    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet">
+</head>
+<body class="hold-transition login-page">
+<div class="login-box">
+  <div class="login-logo">
+    <b>Medi</b>-Sys
+  </div>
+  <!-- /.login-logo -->
+  <div class="card">
+    <div class="card-body login-card-body">
+        <form role="form" id="loginForm">
+            <div class="form-group mb-3">
+                <div class="input-group">
+                    <input type="text" name="username" id="username" class="form-control" placeholder="用户名">
+                    <div class="input-group-append"><div class="input-group-text"><span class="fas fa-user-alt"></span></div></div>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <div class="input-group">
+                    <input id="password" name="password" type="password" class="form-control" placeholder="密码">
+                    <div class="input-group-append"><div class="input-group-text"><span class="fas fa-lock"></span></div></div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-8">
+                    <div class="icheck-primary">
+                        <input type="checkbox" id="remember" checked="checked">
+                        <label for="remember">保存登录信息</label>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <button type="submit" class="btn btn-primary btn-block btn-flat">登录</button>
+                </div>
+            </div>
+        </form>
+
+      <p class="mb-0">
+        <a href="{{.register}}" class="text-center">用户注册</a>
+      </p>
+    </div>
+    <!-- /.login-card-body -->
+  </div>
+</div>
+<!-- /.login-box -->
+
+<!-- jQuery -->
+<script src="../../plugins/jquery/jquery.min.js"></script>
+<!-- Bootstrap 4 -->
+<script src="../../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- SweetAlert2 -->
+<script src="../../plugins/sweetalert2/sweetalert2.min.js"></script>
+<!-- jquery-validation -->
+<script src="../../plugins/jquery-validation/jquery.validate.min.js"></script>
+
+<script>
+    const Toast = Swal.mixin({
+        position: 'center',
+        showConfirmButton: false,
+    });
+    $(document).ready(function () {
+        $.validator.setDefaults({
+            submitHandler: function () {
+                var userLoginInfo = {
+                    username: $('#username').val(),
+                    password: $('#password').val(),
+                    remember: $('#remember').is(':checked'),
+                };
+                Toast.fire({
+                    type: "info",
+                    title: "正在登录中……",
+                    timer: 2000,
+                });
+                setTimeout(function () {
+                    $.ajax({
+                        method: 'POST',
+                        url: '{{.loginapi}}',
+                        data: JSON.stringify(userLoginInfo)
+                    }).done(function (answer) {
+                        console.log(answer);
+                        if (answer.msg === "success") {
+                            Toast.fire({
+                                type: 'success',
+                                title: '登录成功。',
+                                timer: 2000,
+                            });
+                            setTimeout(function () {
+                                window.location.href = "/"
+                            }, 2000)
+                        } else {
+                            Toast.fire({
+                                type: 'error',
+                                title: answer.msg,
+                                showConfirmButton: true,
+                            });
+                        }
+                    });
+                }, 2000);
+
+            }
+        });
+
+        $('#loginForm').validate({
+            rules: {
+                username:{
+                    required:true,
+                },
+                password: {
+                    required: true,
+                },
+            },
+            messages: {
+                username:{
+                    required:"请输入用户名。",
+                },
+                password:{
+                    required: "密码不能为空。"
+                },
+            },
+            errorElement: 'span',
+            errorPlacement: function (error, element) {
+                error.addClass('invalid-feedback');
+                element.closest('.form-group').append(error);
+            },
+            highlight: function (element, errorClass, validClass) {
+                $(element).addClass('is-invalid');
+            },
+            unhighlight: function (element, errorClass, validClass) {
+                $(element).removeClass('is-invalid');
+            }
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+[
+  {
+    "id": "index",
+    "name": "首页",
+    "controller": "/ui/home",
+    "icon": "fas fa-th"
+  },
+  {
+    "name": "影像检索",
+    "controller": "#",
+    "icon": "fas fa-search",
+    "child": [
+      {
+        "id": "medialist_ct",
+        "name": "CTA/CCTA 检索",
+        "icon": "far fa-images",
+        "controller": "/ui/medialist?type=ct"
+      },
+      {
+        "id": "us-medialist",
+        "name": "超声影像检索",
+        "icon": "fas fa-image",
+        "controller": "/ui/medialist?type=us"
+      }
+    ]
+  },
+  {
+    "name": "标注系统",
+    "controller": "#",
+    "icon": "fas fa-edit",
+    "child": [
+      {
+        "id": "cta-label",
+        "name": "CTA 多专家标注",
+        "icon": "fas fa-file-medical-alt",
+        "controller": "http://172.16.1.13/v/"
+      },
+      {
+        "id": "us-label",
+        "name": "超声影像标注",
+        "icon": "fas fa-notes-medical",
+        "controller": "/ui/labeltool?type=us"
+      }
+    ]
+  },
+  {
+    "name": "分析报告",
+    "controller": "#",
+    "icon": "fas fa-chart-bar",
+    "child": [
+      {
+        "id": "analysis-cta",
+        "name": "CTA 分析报告",
+        "icon": "fa fa-book",
+        "controller": "/ui/analysis?type=cta"
+      },
+      {
+        "id": "analysis-ccta",
+        "name": "CCTA 分析报告",
+        "icon": "fa fa-book",
+        "controller": "/ui/analysis?type=ccta"
+      },
+
+      {
+        "id": "analysis-deepsearch",
+        "name": "深度检索报告",
+        "icon": "fa fa-book",
+        "controller": "/ui/analysis?type=deepsearch"
+      }
+    ]
+  },
+  {
+    "name": "后台管理",
+    "controller": "#",
+    "icon": "fas fa-th",
+    "child": [
+      {
+        "id": "management-blockchain",
+        "name": "区块链监控",
+        "icon": "fas fa-layer-group",
+        "controller": "/manage/blockchain"
+      },
+      {
+        "id": "manage-user",
+        "name": "用户管理",
+        "icon": "fas fa-layer-group",
+        "controller": "/manage/user"
+      },
+      {
+        "id": "manage-group",
+        "name": "群组管理",
+        "icon": "fas fa-layer-group",
+        "controller": "/manage/group"
+      },
+      {
+        "id": "manage-media",
+        "name": "媒体管理",
+        "icon": "fas fa-layer-group",
+        "controller": "/manage/media"
+      },
+      {
+        "id": "management-upload-dicom",
+        "name": "上传-DICOM",
+        "icon": "fas fa-layer-group",
+        "controller": "/manage/upload?type=dicom"
+      },
+      {
+        "id": "management-upload-us",
+        "name": "上传-超声",
+        "icon": "fas fa-layer-group",
+        "controller": "/manage/upload?type=us"
+      }
+    ]
+  }
+  ]
