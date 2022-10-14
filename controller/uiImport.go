@@ -16,7 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
-	"uni-minds.com/medical-sys/module"
+	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 // /ui/import?path=

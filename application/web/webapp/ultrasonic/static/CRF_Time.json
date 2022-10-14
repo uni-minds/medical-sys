@@ -1,0 +1,11 @@
+{
+    "id": "time",
+    "describe": "时间标注",
+    "data": [
+        {"cid":"SSMQ","class":"CardiacCycleBtn","name": "收缩末期"},
+        {"cid":"SZMQ","class":"CardiacCycleBtn","name": "舒张末期"},
+        {"cid":"SPEC","class":"CardiacCycleBtn","name": "特殊时间"}
+    ]
+}
+
+

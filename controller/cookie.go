@@ -3,7 +3,7 @@ package controller
 import (
 	"github.com/gin-gonic/gin"
 	"strings"
-	"uni-minds.com/medical-sys/manager"
+	"uni-minds.com/liuxy/medical-sys/manager"
 )
 
 func CookieWrite(ctx *gin.Context, key string, value string, age int) {

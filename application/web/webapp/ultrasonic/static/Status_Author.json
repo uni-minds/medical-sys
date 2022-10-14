@@ -1,0 +1,10 @@
+{
+  "id": "author",
+  "describe":"标注进度",
+  "autoClose":true,
+  "data": [
+  {"tool":"com","cid":"authorNone","name":"未标注","color":"green"},
+  {"tool":"com","cid":"authorPanding","name":"标注中","color":"#9aff25"},
+  {"tool":"com","cid":"authorSubmit","name":"提交审核","color":"#ff3e10"}
+    ]
+}

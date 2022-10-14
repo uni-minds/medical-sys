@@ -1,0 +1,52 @@
+function NewTdObj(content) {
+    return $('<td>' + content + '</td>')
+}
+
+function NewTrObj(content) {
+    return $('<tr>' + content + '</tr>')
+}
+
+function UserManagementAddUser(ele,userdata) {
+    var uid = userdata[0];
+    var tr = NewTrObj().attr("id", "u" + uid + "_r");
+    userdata.forEach(function (e, i) {
+        switch (i) {
+            case 0:
+            case 1:
+            case 2:
+            case 3:
+            case 5:
+            case 6:
+                tr.append(NewTdObj(e).attr("id", "u" + uid + "_c" + i));
+                break;
+            case 4:
+                tr.append(NewTdObj(e.match(/[0-9-]*/)+'</br>'+e.match(/[0-9-]*/)));
+                break;
+        }
+    });
+    var btnActDisable = $('<button type="button" class="btn btn-block btn-primary btn-xs">禁用</button>').attr("id", "u" + uid + "_disable");
+    var btnActDelete = $('<button type="button" class="btn btn-block btn-primary btn-xs">删除</button>').attr("id", "u" + uid + "_delete");
+
+    tr.append(NewTdObj("").append(btnActDisable).append(btnActDelete));
+    ele.append(tr);
+}
+
+function UserManagementMain(data) {
+    var parentNode = $('#user-management-content');
+    for (var item in data) {
+        UserManagementAddUser(parentNode,data[item]);
+    }
+}
+
+function UserManagementStart() {
+    $('#user-management').DataTable();
+}
+$.get("/data/user?action=list",function(result){
+    if (result.code === 200){
+        UserManagementMain(result.data);
+        UserManagementStart();
+    } else {
+        $('.sidebar .info .d-block').text("未知用户");
+    }
+});
+

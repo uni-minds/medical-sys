@@ -5,8 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"os"
-	"uni-minds.com/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/global"
 )
 
 func (*MediaInfo) TableName() string {
@@ -14,30 +13,29 @@ func (*MediaInfo) TableName() string {
 }
 
 type MediaInfo struct {
-	Mid             int     `gorose:"mid"`
-	DisplayName     string  `gorose:"displayname"`
-	Path            string  `gorose:"path"`
-	Hash            string  `gorose:"hash"`
-	Duration        float64 `gorose:"duration"`
-	Frames          int     `gorose:"frames"`
-	Width           int     `gorose:"width"`
-	Height          int     `gorose:"height"`
-	Status          int     `gorose:"status"`
-	UploadTime      string  `gorose:"uploadtime"`
-	UploadUid       int     `gorose:"uploaduid"`
-	PatientID       string  `gorose:"patientid"`
-	MachineID       string  `gorose:"machineid"`
-	FolderName      string  `gorose:"foldername"`
-	Fcode           string  `gorose:"fcode"`
-	IncludeViews    string  `gorose:"includeviews"`
-	Keywords        string  `gorose:"keywords"`
-	Memo            string  `gorose:"memo"`
-	MediaType       string  `gorose:"mediatype"`
-	MediaData       string  `gorose:"mediadata"`
-	LabelAuthorsUid string  `gorose:"labelauthorsuid"`
-	LabelAuthorsLid string  `gorose:"labelauthorslid"`
-	LabelReviewsUid string  `gorose:"labelreviewsuid"`
-	LabelReviewsLid string  `gorose:"labelreviewslid"`
+	Mid            int     `gorose:"mid"`
+	DisplayName    string  `gorose:"displayname"`
+	Path           string  `gorose:"path"`
+	Hash           string  `gorose:"hash"`
+	Duration       float64 `gorose:"duration"`
+	Frames         int     `gorose:"frames"`
+	Width          int     `gorose:"width"`
+	Height         int     `gorose:"height"`
+	Status         int     `gorose:"status"`
+	UploadTime     string  `gorose:"uploadtime"`
+	UploadUid      int     `gorose:"uploaduid"`
+	PatientID      string  `gorose:"patientid"`
+	MachineID      string  `gorose:"machineid"`
+	FolderName     string  `gorose:"foldername"`
+	Fcode          string  `gorose:"fcode"`
+	IncludeViews   string  `gorose:"includeviews"`
+	Keywords       string  `gorose:"keywords"`
+	Memo           string  `gorose:"memo"`
+	MediaType      string  `gorose:"mediatype"`
+	MediaData      string  `gorose:"mediadata"`
+	LabelAuthorUid int     `gorose:"labelauthoruid"`
+	LabelReviewUid int     `gorose:"labelreviewuid"`
+	LabelProgress  int     `gorose:"labelprogress"`
 }
 type MediaInfoUltrasonicImage struct {
 	Width  int
@@ -70,9 +68,9 @@ func initMediaDB() {
 	"memo" TEXT NOT NULL default "",
 	"mediatype" TEXT NOT NULL default "",
 	"mediadata" TEXT NOT NULL default "{}",
-	"labelauthorsuid" TEXT NOT NULL default "[]",
+	"labelauthoruid" TEXT NOT NULL default "[]",
 	"labelauthorslid" TEXT NOT NULL default "[]",  
-	"labelreviewsuid" TEXT NOT NULL default "[]",
+	"labelreviewuid" TEXT NOT NULL default "[]",
 	"labelreviewslid" TEXT NOT NULL default "[]")`, global.DefaultDatabaseMediaTable)
 
 	_, err := DB().Execute(dbSql)
@@ -123,6 +121,22 @@ func MediaGet(i interface{}) (mi MediaInfo, err error) {
 	}
 	return
 }
+func MediaGetByDisplayName(displayname string) (mi MediaInfo, err error) {
+	var mis []MediaInfo
+	err = DB().Table(&mis).Where("displayname", "=", displayname).Select()
+
+	if err != nil {
+		log.Println("E DB MediaGetByDisplayName", err.Error())
+	} else if len(mis) == 0 {
+		err = errors.New(global.EMediaNotExist)
+	} else if len(mis) > 1 {
+		err = errors.New("发现媒体使用相同的文件名")
+	} else {
+		mi = mis[0]
+	}
+	return
+}
+
 func MediaGetAll() (ml []MediaInfo, err error) {
 	err = DB().Table(&ml).OrderBy("mid").Select()
 	return
@@ -159,17 +173,16 @@ func MediaUpdateDetail(mid int, mediaData interface{}) error {
 	data := map[string]interface{}{"mediatype": mediaT, "mediadata": mediaD}
 	return mediaUpdate(mid, data)
 }
-
 func MediaUpdatePath(mid int, path string) error {
-	_, err := os.Stat(path)
-	if err != nil {
-		return err
-	}
 	data := map[string]interface{}{"path": path}
 	return mediaUpdate(mid, data)
 }
 func MediaUpdateFolderName(mid int, foldername string) error {
 	data := map[string]interface{}{"foldername": foldername}
+	return mediaUpdate(mid, data)
+}
+func MediaUpdateDisplayName(mid int, name string) error {
+	data := map[string]interface{}{"displayname": name}
 	return mediaUpdate(mid, data)
 }
 func MediaGetDetail(mid int) (mediaData interface{}, err error) {
@@ -218,21 +231,21 @@ func MediaGetViews(mid int) (views []string, err error) {
 	case "", "[]", "null":
 		return make([]string, 0), nil
 	default:
-		err = json.Unmarshal([]byte(mi.Keywords), &views)
+		err = json.Unmarshal([]byte(mi.IncludeViews), &views)
 		return
 	}
 }
-func MediaAddView(mid int, keyword string) error {
+func MediaAddView(mid int, view string) error {
 	views, err := MediaGetViews(mid)
 	if err != nil {
 		return err
 	}
 	for _, v := range views {
-		if v == keyword {
+		if v == view {
 			return nil
 		}
 	}
-	views = append(views, keyword)
+	views = append(views, view)
 	return MediaSetViews(mid, views)
 }
 func MediaSetViews(mid int, views []string) error {
@@ -329,19 +342,21 @@ func MediaUpdateMemo(mid int, memo string) error {
 	return mediaUpdate(mid, data)
 }
 
-// DisplayName
-func MediaUpdateDisplayName(mid int, name string) error {
-	data := map[string]interface{}{"displayname": name}
+// Label
+func MediaUpdateLabelAuthorUidLid(mid int, uid, lid int) error {
+	data := map[string]interface{}{"labelauthoruid": uid, "labelauthorslid": lid}
 	return mediaUpdate(mid, data)
 }
-
-func MediaUpdateLabelAuthorUidLid(mid int, uidstr, lidstr string) error {
-	data := map[string]interface{}{"labelauthorsuid": uidstr, "labelauthorslid": lidstr}
+func MediaUpdateLabelReviewUidLid(mid int, uid, lid int) error {
+	data := map[string]interface{}{"labelreviewuid": uid, "labelreviewslid": lid}
 	return mediaUpdate(mid, data)
 }
-
-func MediaUpdateLabelReviewUidLid(mid int, uidstr, lidstr string) error {
-	data := map[string]interface{}{"labelreviewsuid": uidstr, "labelreviewslid": lidstr}
+func MediaUpdateLabelProgress(mid, authoruid, revieweruid, progress int) error {
+	data := map[string]interface{}{"labelauthoruid": authoruid, "labelreviewuid": revieweruid, "labelprogress": progress}
+	return mediaUpdate(mid, data)
+}
+func MediaRemoveLabel(mid int) error {
+	data := map[string]interface{}{"labelauthoruid": 0, "labelreviewuid": 0, "labelprogress": 0}
 	return mediaUpdate(mid, data)
 }
 

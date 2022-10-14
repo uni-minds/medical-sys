@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"uni-minds.com/medical-sys/global"
-	"uni-minds.com/medical-sys/module"
+	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 const (

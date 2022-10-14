@@ -3,7 +3,7 @@ package manager
 import (
 	"sync"
 	"time"
-	"uni-minds.com/medical-sys/tools"
+	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type TokenInfo struct {

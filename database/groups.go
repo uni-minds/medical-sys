@@ -7,7 +7,7 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"uni-minds.com/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/global"
 )
 
 const (
@@ -113,7 +113,6 @@ func getPermissions(p int) (permissions UserPermissions) {
 		}
 		p >>= 1
 	}
-
 	return
 }
 
@@ -219,19 +218,30 @@ func GroupAddMedia(gid, mid int) (err error) {
 	return groupUpdateMedia(gid, mids)
 }
 func GroupAddUser(gid, uid int, permissions UserPermissions) error {
+	fmt.Println("group add user,G=", gid, "U=", uid, "R=", permissions)
 	users, err := GroupGetUsers(gid)
 	if err != nil {
 		return err
 	}
 
-	_, ok := users[uid]
-	if ok {
-		return errors.New(global.EGroupUserAlreadyExisted)
-	}
+	//_, ok := users[uid]
+	//if ok {
+	//	fmt.Println(global.EGroupUserAlreadyExisted)
+	//	return errors.New(global.EGroupUserAlreadyExisted)
+	//}
 
 	users[uid] = setPermissions(permissions)
-	_ = UserAddGroup(uid, gid)
-	return groupUpdateUsers(gid, users)
+	fmt.Println("user add g")
+	err = UserAddGroup(uid, gid)
+	if err != nil {
+		fmt.Println("E", err.Error())
+	}
+	fmt.Println("group add u")
+	err = groupUpdateUsers(gid, users)
+	if err != nil {
+		fmt.Println("E", err.Error())
+	}
+	return err
 }
 
 func groupUpdateMedia(gid int, mids []int) error {

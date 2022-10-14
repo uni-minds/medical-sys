@@ -2,8 +2,8 @@ package module
 
 import (
 	"log"
-	"uni-minds.com/medical-sys/database"
-	"uni-minds.com/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/database"
+	"uni-minds.com/liuxy/medical-sys/global"
 )
 
 func init() {

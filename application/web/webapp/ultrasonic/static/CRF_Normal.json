@@ -1,0 +1,31 @@
+{
+  "id": "normal",
+  "describe":"通用结构",
+  "autoClose":true,
+  "data": [
+    {"class":"LabelBtn","cid":"XG","name":"胸骨","color":"#ffe92c"},
+    {"class":"LabelBtn","cid":"JZ","name":"脊柱","color":"#9aff25"},
+    {"class":"LabelBtn","cid":"DA","name":"降主动脉","color":"#ff3e10"},
+    {"class":"LabelBtn","cid":"LgZ1","name":"真肋骨1","color":"#FD843F"},
+    {"class":"LabelBtn","cid":"LgZ2","name":"真肋骨2","color":"#E3FD5B"},
+    {"class":"LabelBtn","cid":"LgJ1","name":"假肋骨1","color":"#709DFD"},
+    {"class":"LabelBtn","cid":"LgJ2","name":"假肋骨2","color":"#FB43FD"},
+    {"class":"LabelBtn","cid":"XJWM","name":"心肌外膜","color":"#ffe1a3"},
+    {"class":"LabelBtn","cid":"FJMZ","name":"肺静脉左","color":"#dbff8e"},
+    {"class":"LabelBtn","cid":"FJM","name":"肺静脉右","color":"#6487ff"},
+    {"class":"LabelBtn","cid":"SZ","name":"原发房间隔","color":"#1bdaff"},
+    {"class":"LabelBtn","cid":"fjgJF","name":"继发房间隔","color":"#5BFF7F"},
+    {"class":"LabelBtn","cid":"sjg","name":"室间隔","color":"#FFB0F4"},
+    {"class":"LabelBtn","cid":"LA","name":"左房","color":"#76ff3e"},
+    {"class":"LabelBtn","cid":"LV","name":"左室","color":"#b9ff94"},
+    {"class":"LabelBtn","cid":"EJBQY","name":"二尖瓣前叶","color":"#a3ebff"},
+    {"class":"LabelBtn","cid":"EJBHY","name":"二尖瓣后叶","color":"#8bb9ff"},
+    {"class":"LabelBtn","cid":"RA","name":"右房","color":"#fbaeff"},
+    {"class":"LabelBtn","cid":"RV","name":"右室","color":"#ff37d5"},
+    {"class":"LabelBtn","cid":"SJBGY","name":"三尖瓣隔叶","color":"#ff7096"},
+    {"class":"LabelBtn","cid":"SJBQY","name":"三尖瓣前叶","color":"#5ce63e"},
+    {"class":"LabelBtn","cid":"RYKBM","name":"卵圆孔瓣膜","color":"#ffbd63"},
+    {"class":"LabelBtn","cid":"RYKKK","name":"卵圆孔开口","color":"#ff228f"},
+    {"tool":"text","cid":"COMM","name":"批注","color":"#ff228f"}
+    ]
+}

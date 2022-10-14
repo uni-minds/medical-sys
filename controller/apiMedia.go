@@ -1,26 +1,31 @@
 package controller
 
 import (
-	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"strconv"
-	"uni-minds.com/medical-sys/database"
-	"uni-minds.com/medical-sys/manager"
-	"uni-minds.com/medical-sys/module"
+	"uni-minds.com/liuxy/medical-sys/database"
+	"uni-minds.com/liuxy/medical-sys/manager"
+	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 type mediaInfoForJsGrid struct {
-	Mid       int     `json:"mid"`
-	MediaHash string  `json:"media"`
-	Name      string  `json:"name"`
-	View      string  `json:"view"`
-	Duration  float64 `json:"duration"`
-	Frames    int     `json:"frames"`
-	Authors   string  `json:"authors"`
-	Reviews   string  `json:"reviews"`
-	Memo      string  `json:"memo"`
+	Mid       int                      `json:"mid"`
+	MediaHash string                   `json:"media"`
+	Name      string                   `json:"name"`
+	View      string                   `json:"view"`
+	Duration  float64                  `json:"duration"`
+	Frames    int                      `json:"frames"`
+	Authors   labelInfoForJsGridButton `json:"authors"`
+	Reviews   labelInfoForJsGridButton `json:"reviews"`
+	Memo      string                   `json:"memo"`
+}
+
+type labelInfoForJsGridButton struct {
+	Realname string `json:"realname"`
+	Tips     string `json:"tips"`
+	Status   string `json:"status"`
 }
 
 type medialistForJsGrid struct {
@@ -75,23 +80,38 @@ func MediaGetHandler(ctx *gin.Context) {
 			}
 
 			for _, mid := range mids {
-				summary, err := module.MediaGetSummary(mid)
+				mediaSummary, err := module.MediaGetSummary(mid)
 				if err != nil {
-					log.Println("error get summary", mid, err.Error())
+					log.Println("E get mediaSummary", mid, err.Error())
 					continue
 				}
-				jbal, _ := json.Marshal(module.LabelGetHashs(summary.AuthorLids))
-				jbrl, _ := json.Marshal(module.LabelGetHashs(summary.ReviewLids))
+
+				labelSummary, err := module.LabelGetSummary(mediaSummary.Hash)
+				var authorData, reviewData labelInfoForJsGridButton
+				if err == nil {
+					authorData = labelInfoForJsGridButton{
+						Realname: labelSummary.AuthorRealname,
+						Tips:     labelSummary.AuthorTips,
+						Status:   labelSummary.AuthorProgress,
+					}
+
+					reviewData = labelInfoForJsGridButton{
+						Realname: labelSummary.ReviewRealname,
+						Tips:     labelSummary.ReviewTips,
+						Status:   labelSummary.ReviewProgress,
+					}
+				}
+
 				mdata = append(mdata, mediaInfoForJsGrid{
 					Mid:       mid,
-					MediaHash: summary.Hash,
-					Name:      summary.DisplayName,
-					View:      summary.Views,
-					Duration:  summary.Duration,
-					Frames:    summary.Frames,
-					Authors:   string(jbal),
-					Reviews:   string(jbrl),
-					Memo:      summary.Memo,
+					MediaHash: mediaSummary.Hash,
+					Name:      mediaSummary.DisplayName,
+					View:      mediaSummary.Views,
+					Duration:  mediaSummary.Duration,
+					Frames:    mediaSummary.Frames,
+					Authors:   authorData,
+					Reviews:   reviewData,
+					Memo:      mediaSummary.Memo,
 				})
 			}
 		}

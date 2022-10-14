@@ -1,0 +1,11 @@
+{
+  "id": "review",
+  "describe":"审核进度",
+  "autoClose":true,
+  "data": [
+  {"tool":"com","cid":"reviewNone","name":"未审核","color":"#ffe92c"},
+  {"tool":"com","cid":"reviewPanding","name":"审核中","color":"#9aff25"},
+  {"tool":"com","cid":"reviewFinish","name":"审核通过","color":"#ff3e10"},
+  {"tool":"com","cid":"reviewReject","name":"退回","color":"#FD843F"}
+    ]
+}

@@ -7,10 +7,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"uni-minds.com/medical-sys/database"
-	"uni-minds.com/medical-sys/global"
-	"uni-minds.com/medical-sys/module"
-	"uni-minds.com/medical-sys/updater"
+	"uni-minds.com/liuxy/medical-sys/database"
+	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 type UserInfo struct {
@@ -48,10 +47,13 @@ type MediaInfo struct {
 
 func UpgradeImportUsers() {
 	var userList []UserInfo
-	updater.ConnectDB()
-	_ = updater.GetDB().C("user").Find(nil).All(&userList)
+	ConnectDB()
+	_ = GetDB().C("User").Find(nil).All(&userList)
 
 	for _, v := range userList {
+		if module.UserGetUid(v.Username) > 0 {
+			continue
+		}
 		_ = module.UserCreate(v.Username, v.Password, v.Email, v.Realname, v.Id.Hex())
 		uid := module.UserGetUid(v.Username)
 		for _, g := range v.Groups {
@@ -62,17 +64,27 @@ func UpgradeImportUsers() {
 			if gid == 0 {
 				module.GroupCreate(g, g, g)
 				gid = module.GroupGetGid(g)
-				module.GroupAddUser(gid, 1, "master")
+				module.GroupUserAdd(gid, 1, "master")
 			}
-			module.GroupAddUser(gid, uid, "member")
+			module.GroupUserAdd(gid, uid, "member")
 		}
 	}
-	updater.DisconnectDB()
+	DisconnectDB()
 }
 func UpgradeImportGroupMedia(group string) {
+	var userList []UserInfo
+	ConnectDB()
+	_ = GetDB().C("User").Find(nil).All(&userList)
+
+	userdb := make(map[string]string, 0)
+
+	for _, v := range userList {
+		userdb[v.Id.Hex()] = v.Username
+	}
+
 	var mediaList []MediaInfo
-	updater.ConnectDB()
-	_ = updater.GetDB().C("media").Find(nil).All(&mediaList)
+	ConnectDB()
+	_ = GetDB().C("media").Find(nil).All(&mediaList)
 	gid := module.GroupGetGid(group)
 	if gid == 0 {
 		log.Panic("No group")
@@ -86,36 +98,40 @@ func UpgradeImportGroupMedia(group string) {
 		hash := "IMPORT_EMPTY_" + v.Mid.Hex()
 		disp := strings.Split(v.Filename, ".")
 
+		if disp[0] == "腹动F35764-483650 (1)" {
+			log.Println("Catch")
+		}
+
 		f, _ := strconv.Atoi(v.Frames)
 		d, _ := strconv.ParseFloat(v.Duration, 32)
 		h, _ := strconv.Atoi(v.Height)
 		w, _ := strconv.Atoi(v.Width)
 
+		s1 := strings.Replace(v.FullPath, `www/files/G2020C_AC/`, `/Data/media/medical-sys/us/20200415-08H/`, -1)
+		s2 := strings.Replace(s1, `www/files/G2020B_AC/`, `/Data/media/medical-sys/us/20200415-08H/`, -1)
+		s3 := strings.Replace(s2, `www/files/G2020B_AC/`, `/Data/media/medical-sys/us/20200415-08H/`, -1)
+
 		mi := database.MediaInfo{
-			Mid:             0,
-			DisplayName:     disp[0],
-			Path:            v.FullPath,
-			Hash:            hash,
-			Duration:        d,
-			Frames:          f,
-			Width:           w,
-			Height:          h,
-			Status:          0,
-			UploadTime:      v.UploadTime.Format(global.TimeFormat),
-			UploadUid:       1,
-			PatientID:       "",
-			MachineID:       "",
-			FolderName:      "",
-			Fcode:           "",
-			IncludeViews:    `["4AP"]`,
-			Keywords:        "",
-			Memo:            v.Mid.Hex(),
-			MediaType:       "",
-			MediaData:       "",
-			LabelAuthorsUid: "",
-			LabelAuthorsLid: "",
-			LabelReviewsUid: "",
-			LabelReviewsLid: "",
+			Mid:          0,
+			DisplayName:  disp[0],
+			Path:         s3,
+			Hash:         hash,
+			Duration:     d,
+			Frames:       f,
+			Width:        w,
+			Height:       h,
+			Status:       0,
+			UploadTime:   v.UploadTime.Format(global.TimeFormat),
+			UploadUid:    1,
+			PatientID:    "",
+			MachineID:    "",
+			FolderName:   "",
+			Fcode:        "",
+			IncludeViews: `["A"]`,
+			Keywords:     `["正常"]`,
+			Memo:         v.Mid.Hex(),
+			MediaType:    "",
+			MediaData:    "",
 		}
 
 		mid, _ := database.MediaCreate(mi)
@@ -133,18 +149,26 @@ func UpgradeImportGroupMedia(group string) {
 		_ = database.MediaUpdateDetail(mid, detail)
 
 		for i, ld := range v.LabelData {
-			u := module.UserGetUidFromMemo(v.LabelUIDs[i].Hex())
+			u, err := database.UserGet(userdb[v.LabelUIDs[i].Hex()])
+			if err != nil {
+				log.Println("User Get err", err, v.LabelUIDs[i])
+				continue
+			}
 			li := database.LabelInfo{
-				Uid:        u,
-				Mid:        mid,
-				Type:       global.LabelTypeAuthor,
-				Data:       ld,
-				CreateTime: v.UpdateTime.Format(global.TimeFormat),
-				ModifyTime: "",
-				Memo:       v.LabelUIDs[i].Hex(),
-				Frames:     v.LabelFrames,
-				Counts:     v.LabelNumber,
-				Version:    1,
+				Progress:          2,
+				AuthorUid:         u.Uid,
+				ReviewUid:         0,
+				MediaHash:         hash,
+				Data:              ld,
+				Version:           1,
+				Frames:            v.LabelFrames,
+				Counts:            v.LabelNumber,
+				TimeAuthorStart:   v.UpdateTime.Format(global.TimeFormat),
+				TimeAuthorSubmit:  "",
+				TimeReviewStart:   "",
+				TimeReviewSubmit:  "",
+				TimeReviewConfirm: "",
+				Memo:              v.LabelUIDs[i].Hex(),
 			}
 			database.LabelCreate(li)
 			if i > 1 {
@@ -154,11 +178,11 @@ func UpgradeImportGroupMedia(group string) {
 	}
 }
 func UpgradeParseMediaData() {
-	mids := module.GroupGetMedia(2)
+	mids := module.GroupGetMedia(11)
 	for _, mid := range mids {
 		mi, _ := database.MediaGet(mid)
 		log.Println(mi.Path)
-		p := strings.Replace(mi.Path, `www/files/common/`, `/data/media/medical-sys/us/20200327-12H/`, -1)
+		p := strings.Replace(mi.Path, `www/files/G2020A_AC/`, `/Data/media/medical-sys/us/20200415-08H/`, -1)
 		log.Println("=>", p)
 		err := database.MediaUpdatePath(mid, p)
 		if err != nil {

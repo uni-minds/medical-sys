@@ -5,7 +5,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 	"log"
 	"sync"
-	"uni-minds.com/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/global"
 )
 
 var once sync.Once

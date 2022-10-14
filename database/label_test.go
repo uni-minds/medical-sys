@@ -2,7 +2,7 @@ package database
 
 import (
 	"testing"
-	"uni-minds.com/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/global"
 )
 
 func TestLabelCreate(t *testing.T) {

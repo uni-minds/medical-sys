@@ -1,4 +1,4 @@
-package updater
+package upgrade
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 )
 
 var session *mgo.Session
-var database *mgo.Database
+var mgoDatabase *mgo.Database
 
 func ConnectDB() {
 	var err error
@@ -18,7 +18,7 @@ func ConnectDB() {
 	}
 
 	session.SetMode(mgo.Monotonic, true)
-	database = session.DB("labelsys")
+	mgoDatabase = session.DB("labelsys")
 	return
 }
 
@@ -27,7 +27,7 @@ func GetMgo() *mgo.Session {
 }
 
 func GetDB() *mgo.Database {
-	return database
+	return mgoDatabase
 }
 
 func DisconnectDB() {

@@ -1,11 +1,11 @@
 package global
 
 const (
-	DefaultDatabaseUserTable      = "users"
-	DefaultDatabaseGroupTable     = "groups"
-	DefaultDatabaseMediaTable     = "media"
-	DefaultDatabaseLabelTable     = "label"
-	DefaultDatabaseLabelsTableNew = "labels"
+	DefaultDatabaseUserTable  = "users"
+	DefaultDatabaseGroupTable = "groups"
+	DefaultDatabaseMediaTable = "media"
+	//DefaultDatabaseLabelTable     = "label"
+	DefaultDatabaseLabelTable = "label"
 
 	DefaultAdminGroup    = "administrators"
 	DefaultAdminUsername = "admin"

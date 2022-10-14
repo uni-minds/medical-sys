@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"uni-minds.com/medical-sys/module"
+	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 func GroupGetHandler(ctx *gin.Context) {
@@ -19,6 +19,7 @@ func GroupGetHandler(ctx *gin.Context) {
 	case "getlist":
 		gids := module.UserGetGroups(uid)
 		for i, gid := range gids {
+			// remove administrators group
 			if gid == 1 {
 				gids = append(gids[0:i], gids[i+1:]...)
 			}

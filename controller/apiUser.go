@@ -5,8 +5,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strings"
-	"uni-minds.com/medical-sys/database"
-	"uni-minds.com/medical-sys/module"
+	"uni-minds.com/liuxy/medical-sys/database"
+	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 type UserLastStatus struct {

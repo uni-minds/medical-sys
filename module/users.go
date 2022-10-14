@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"uni-minds.com/medical-sys/database"
-	"uni-minds.com/medical-sys/global"
-	"uni-minds.com/medical-sys/tools"
+	"uni-minds.com/liuxy/medical-sys/database"
+	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type UserListContent struct {
@@ -126,13 +126,13 @@ func UserGetGroupMediaSelector(uid, gid int, sortField, sortOrder string) []int 
 	case "authors":
 		for _, mid := range mids {
 			mi, _ := database.MediaGet(mid)
-			data[mid] = mi.LabelAuthorsUid
+			data[mid] = mi.LabelAuthorUid
 		}
 
 	case "reviews":
 		for _, mid := range mids {
 			mi, _ := database.MediaGet(mid)
-			data[mid] = mi.LabelReviewsUid
+			data[mid] = mi.LabelReviewUid
 		}
 
 	default:
@@ -362,4 +362,18 @@ func UserDelete(username string) error {
 		return err
 	}
 	return database.UserDelete(u.Uid)
+}
+func UserGetAll() map[int]database.UserInfo {
+
+	uis, err := database.UserGetAll()
+	if err != nil {
+		log.Println("E;UserGetAll:", err.Error())
+		return nil
+	}
+
+	data := make(map[int]database.UserInfo, 0)
+	for _, v := range uis {
+		data[v.Uid] = v
+	}
+	return data
 }

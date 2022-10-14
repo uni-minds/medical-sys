@@ -8,8 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"uni-minds.com/medical-sys/global"
-	"uni-minds.com/medical-sys/tools"
+	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 func (*UserInfo) TableName() string {
@@ -112,7 +112,7 @@ func userUpdate(uid int, data interface{}) error {
 	return err
 }
 func UserUpdateAccountActiveType(uid int, activeType int) error {
-	data := map[string]interface{}{"loginenable": activeType}
+	data := map[string]interface{}{"activate": activeType}
 	return userUpdate(uid, data)
 }
 func UserUpdateTryFailureCount(uid, c int) error {
@@ -153,16 +153,17 @@ func userUpdateGroups(uid int, gids []int) error {
 	}
 
 	data := map[string]interface{}{"groups": j}
+	fmt.Println("after", j)
 	return userUpdate(uid, data)
 }
 func UserAddGroup(uid, gid int) error {
 	gids, err := UserGetGroups(uid)
+	fmt.Println("before", gids)
 	if err != nil {
 		return err
 	}
 
 	gids = append(gids, gid)
-	sort.Ints(gids)
 	gids = tools.RemoveDuplicateInt(gids)
 	return userUpdateGroups(uid, gids)
 }

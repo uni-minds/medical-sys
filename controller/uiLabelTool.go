@@ -11,9 +11,9 @@ package controller
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"log"
 	"net/http"
-	"uni-minds.com/medical-sys/module"
+	"strings"
+	"uni-minds.com/liuxy/medical-sys/module"
 )
 
 func UILabeltoolGetHandler(ctx *gin.Context) {
@@ -28,53 +28,33 @@ func UILabeltoolGetHandler(ctx *gin.Context) {
 	switch tp {
 	case "us":
 		crfScript := ""
-		switch ctx.Query("crf") {
+		switch strings.ToLower(ctx.Query("crf")) {
 		case "4ap":
 			crfScript = "/webapp/ultrasonic/js/crf_4ap.js"
-		case "A":
+		case "a":
 			crfScript = "/webapp/ultrasonic/js/crf_a.js"
+		case "l":
+			crfScript = "/webapp/ultrasonic/js/crf_l.js"
+		case "r":
+			crfScript = "/webapp/ultrasonic/js/crf_r.js"
 		default:
 			crfScript = "/webapp/ultrasonic/js/crf_4ap.js"
-			ctx.Writer.Write([]byte(content))
-			return
 		}
 
 		mediaHash := ctx.Query("media")
-		labelUUID := ctx.Query("label")
 		if mediaHash == "" {
 			return
 		}
 		mid := module.MediaGetMid(mediaHash)
 
-		authorJson := "{}"
-		reviewJson := "{}"
 		switch ctx.Query("action") {
 		case "author":
-			if len(labelUUID) != 32 {
-				// 创建 LabelUUID
 
-			} else {
-				// 编辑或预览
-				authorJson = module.LabelGetAuthorJson(labelUUID)
-			}
 		case "review":
-			if len(labelUUID) != 32 {
-				// 新的审阅
-				summary, err := module.MediaGetSummary(mid)
-				if err != nil {
-					log.Println(err.Error())
-				}
-				authorJson = module.LabelGetAuthorJson(summary.AuthorLids[0])
 
-			} else {
-				// 修改审阅
-				authorJson, reviewJson, _ = module.LabelGetReviewJson(labelUUID)
-			}
 		}
 		//
 		summary, _ := module.MediaGetSummary(mid)
-		//authorData, _ := module.LabelGetAuthorJson(mid, -1)
-		//reviewerData, _ := module.LabelGetReviewJson(mid, uid)
 
 		ctx.HTML(http.StatusOK, "ultrasonic_labelsys-v1.html", gin.H{
 			"title":          "影像标注 | Medi-sys",
@@ -83,8 +63,7 @@ func UILabeltoolGetHandler(ctx *gin.Context) {
 			"media_frames":   summary.Frames,
 			"media_height":   summary.Height,
 			"media_width":    summary.Width,
-			"author_data":    authorJson,
-			"review_data":    reviewJson,
+			"label_data":     module.LabelGetJson(mediaHash),
 			"crf_scripts":    crfScript,
 			"custom_scripts": "/webapp/ultrasonic/js/ultrasonic_labelsys-v1-mod-forV2.js",
 		})

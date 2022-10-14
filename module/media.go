@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"uni-minds.com/medical-sys/database"
-	"uni-minds.com/medical-sys/global"
-	"uni-minds.com/medical-sys/tools"
+	"uni-minds.com/liuxy/medical-sys/database"
+	"uni-minds.com/liuxy/medical-sys/global"
+	"uni-minds.com/liuxy/medical-sys/tools"
 )
 
 type MediaSummaryInfo struct {
@@ -25,35 +25,32 @@ type MediaSummaryInfo struct {
 	Frames      int
 	Views       string
 	Keywords    string
-	AuthorUids  []int
-	AuthorLids  []int
-	ReviewUids  []int
-	ReviewLids  []int
 	Width       int
 	Height      int
 	Hash        string
 }
-type MediaSummaryAuthorInfo struct {
-	Realname   string
-	Frames     int
-	Counts     int
-	UpdateTime string
-	Progress   string
-	Hash       string
-	Memo       string
-	IsReviewed bool
-	IsModified bool
-}
-type MediaSummaryReviewInfo struct {
-	Realname   string
-	UpdateTime string
-	Progress   string
-	Tips       string
-	Hash       string
-	Memo       string
-	Author     string
-	AuthorTime string
-}
+
+//type MediaSummaryAuthorInfo struct {
+//	Realname   string
+//	Frames     int
+//	Counts     int
+//	UpdateTime string
+//	Progress   string
+//	Hash       string
+//	Memo       string
+//	IsReviewed bool
+//	IsModified bool
+//}
+//type MediaSummaryReviewInfo struct {
+//	Realname   string
+//	UpdateTime string
+//	Progress   string
+//	Tips       string
+//	Hash       string
+//	Memo       string
+//	Author     string
+//	AuthorTime string
+//}
 type MediaImportJson struct {
 	Source    string `json:"source"`
 	Filename  string `json:"target"`
@@ -77,14 +74,22 @@ func MediaGetSummary(mid int) (summary MediaSummaryInfo, err error) {
 	summary.DisplayName = mi.DisplayName
 	summary.Memo = mi.Memo
 
-	// HASH再识别
-	if len(mi.Hash) != 32 {
-		log.Println("Find old import hash", mi.Hash, mi.Path)
-		hash := tools.GetFileMD5(mi.Path)
-		log.Println("Update hash", hash)
-		database.MediaUpdateHash(mi.Mid, hash)
-		summary.Hash = hash
-	}
+	// HASH再识别,存在问题？
+	//if len(mi.Hash) != 32 {
+	//	log.Println("Find old import hash", mi.Hash, mi.Path)
+	//	hash := tools.GetFileMD5(mi.Path)
+	//	log.Println("Update hash", hash)
+	//	database.MediaUpdateHash(mi.Mid, hash)
+	//	li,err :=database.LabelGet(mi.Hash)
+	//	if err == nil {
+	//		err = database.LabelUpdateMediaHash(li.Lid,hash)
+	//		if err!= nil {
+	//			log.Println(err.Error())
+	//		}
+	//		log.Println("Label UPD",li.Lid,mi.Hash,hash)
+	//	}
+	//	summary.Hash = hash
+	//}
 
 	// 切面再识别
 	switch mi.IncludeViews {
@@ -136,49 +141,49 @@ func MediaGetSummary(mid int) (summary MediaSummaryInfo, err error) {
 		}
 	}
 	// 标注信息再识别
-	switch mi.LabelAuthorsUid {
-	case "", "[]", "null":
-		labelAuthorsUid := make([]int, 0)
-		labelAuthorsLid := make([]int, 0)
-		lis, err := database.LabelGetAll(mid, 0, global.LabelTypeAuthor)
-		if err != nil {
-			log.Println(err.Error())
-			break
-		}
-		for _, li := range lis {
-			labelAuthorsUid = append(labelAuthorsUid, li.Uid)
-			labelAuthorsLid = append(labelAuthorsLid, li.Lid)
-		}
-		MediaUpdateLabelAuthorsUidLid(mid, labelAuthorsUid, labelAuthorsLid)
-		summary.AuthorUids = labelAuthorsUid
-		summary.AuthorLids = labelAuthorsLid
-
-	default:
-		json.Unmarshal([]byte(mi.LabelAuthorsUid), &summary.AuthorUids)
-		json.Unmarshal([]byte(mi.LabelAuthorsLid), &summary.AuthorLids)
-	}
-	// 审阅信息再识别
-	switch mi.LabelReviewsUid {
-	case "", "[]", "null":
-		labelReviewsUid := make([]int, 0)
-		labelReviewsLid := make([]int, 0)
-		lis, err := database.LabelGetAll(mid, 0, global.LabelTypeReview)
-		if err != nil {
-			log.Println(err.Error())
-			break
-		}
-		for _, li := range lis {
-			labelReviewsUid = append(labelReviewsUid, li.Uid)
-			labelReviewsLid = append(labelReviewsLid, li.Lid)
-		}
-		MediaUpdateLabelReviewsUidLid(mid, labelReviewsUid, labelReviewsLid)
-		summary.ReviewUids = labelReviewsUid
-		summary.ReviewLids = labelReviewsLid
-
-	default:
-		json.Unmarshal([]byte(mi.LabelReviewsUid), &summary.ReviewUids)
-		json.Unmarshal([]byte(mi.LabelReviewsLid), &summary.ReviewLids)
-	}
+	//switch mi.LabelAuthorUid {
+	//case "", "[]", "null":
+	//	labelAuthorsUid := make([]int, 0)
+	//	labelAuthorsLid := make([]int, 0)
+	//	lis, err := database.LabelGetAll(mid, 0, global.LabelTypeAuthor)
+	//	if err != nil {
+	//		log.Println(err.Error())
+	//		break
+	//	}
+	//	for _, li := range lis {
+	//		labelAuthorsUid = append(labelAuthorsUid, li.Uid)
+	//		labelAuthorsLid = append(labelAuthorsLid, li.Lid)
+	//	}
+	//	MediaUpdateLabelAuthorsUidLid(mid, labelAuthorsUid, labelAuthorsLid)
+	//	summary.AuthorUids = labelAuthorsUid
+	//	summary.AuthorLids = labelAuthorsLid
+	//
+	//default:
+	//	json.Unmarshal([]byte(mi.LabelAuthorUid), &summary.AuthorUids)
+	//	json.Unmarshal([]byte(mi.LabelAuthorsLid), &summary.AuthorLids)
+	//}
+	//// 审阅信息再识别
+	//switch mi.LabelReviewUid {
+	//case "", "[]", "null":
+	//	labelReviewsUid := make([]int, 0)
+	//	labelReviewsLid := make([]int, 0)
+	//	lis, err := database.LabelGetAll(mid, 0, global.LabelTypeReview)
+	//	if err != nil {
+	//		log.Println(err.Error())
+	//		break
+	//	}
+	//	for _, li := range lis {
+	//		labelReviewsUid = append(labelReviewsUid, li.Uid)
+	//		labelReviewsLid = append(labelReviewsLid, li.Lid)
+	//	}
+	//	MediaUpdateLabelReviewsUidLid(mid, labelReviewsUid, labelReviewsLid)
+	//	summary.ReviewUids = labelReviewsUid
+	//	summary.ReviewLids = labelReviewsLid
+	//
+	//default:
+	//	json.Unmarshal([]byte(mi.LabelReviewUid), &summary.ReviewUids)
+	//	json.Unmarshal([]byte(mi.LabelReviewsLid), &summary.ReviewLids)
+	//}
 
 	return
 }
@@ -191,6 +196,7 @@ func MediaGetMid(hash string) int {
 	return mi.Mid
 }
 
+/*
 //用于JsGrid生成标注作者按钮
 func MediaGetLabelAuthorsSummary(uids, lids []int) []MediaSummaryAuthorInfo {
 	authors := make([]MediaSummaryAuthorInfo, 0)
@@ -280,7 +286,7 @@ func MediaGetLabelReviewersSummary(uids, lids []int) []MediaSummaryReviewInfo {
 	}
 	return reviews
 }
-
+*/
 func MediaImport(input, displayName, memo string, ownerUid int) (mi database.MediaInfo, err error) {
 	filefull := path.Base(input)
 	fileext := path.Ext(input)
@@ -416,7 +422,7 @@ func MediaImportDir(source, store string, uid, gid int) error {
 func MediaImportUsVideoOgv(srcFile, destFolder, dispname string, views []string, uid int) (mid int, err error) {
 	checksum := tools.GetFileMD5(srcFile)
 	if checksum == "" {
-		return 0, errors.New("HASH校验值为空")
+		return 0, errors.New("HASH校验值为空:" + srcFile)
 	}
 
 	log.Println("checksum", checksum)
@@ -441,30 +447,28 @@ func MediaImportUsVideoOgv(srcFile, destFolder, dispname string, views []string,
 
 	width, height, frames, duration, encoder, err := MediaInfo(srcFile)
 	mi = database.MediaInfo{
-		Mid:             0,
-		DisplayName:     dispname,
-		Path:            destFile,
-		Hash:            checksum,
-		Duration:        duration,
-		Frames:          frames,
-		Width:           width,
-		Height:          height,
-		Status:          0,
-		UploadTime:      "",
-		UploadUid:       uid,
-		PatientID:       "",
-		MachineID:       "",
-		FolderName:      filepath.Base(filepath.Dir(srcFile)),
-		Fcode:           "",
-		IncludeViews:    string(bv),
-		Keywords:        "",
-		Memo:            "",
-		MediaType:       "",
-		MediaData:       "",
-		LabelAuthorsUid: "",
-		LabelAuthorsLid: "",
-		LabelReviewsUid: "",
-		LabelReviewsLid: "",
+		Mid:            0,
+		DisplayName:    dispname,
+		Path:           destFile,
+		Hash:           checksum,
+		Duration:       duration,
+		Frames:         frames,
+		Width:          width,
+		Height:         height,
+		Status:         0,
+		UploadTime:     "",
+		UploadUid:      uid,
+		PatientID:      "",
+		MachineID:      "",
+		FolderName:     filepath.Base(filepath.Dir(srcFile)),
+		Fcode:          "",
+		IncludeViews:   string(bv),
+		Keywords:       "",
+		Memo:           "",
+		MediaType:      "",
+		MediaData:      "",
+		LabelAuthorUid: 0,
+		LabelReviewUid: 0,
 	}
 	mid, err = database.MediaCreate(mi)
 
@@ -535,30 +539,20 @@ func MediaUpdateLabel(mid, uid, lid int, labeltype string) error {
 
 	switch labeltype {
 	case global.LabelTypeAuthor:
-		db := parseUidLidStringToDbMap(mi.LabelAuthorsUid, mi.LabelAuthorsLid)
-		db[uid] = lid
-		uidstr, lidstr := parseUidLidMapMapToString(db)
-		return database.MediaUpdateLabelAuthorUidLid(mi.Mid, uidstr, lidstr)
+		//db := parseUidLidStringToDbMap(mi.LabelAuthorUid, mi.LabelAuthorsLid)
+		//db[uid] = lid
+		//uidstr, lidstr := parseUidLidMapMapToString(db)
+		return database.MediaUpdateLabelAuthorUidLid(mi.Mid, uid, lid)
 
 	case global.LabelTypeReview:
-		db := parseUidLidStringToDbMap(mi.LabelReviewsUid, mi.LabelReviewsLid)
-		db[uid] = lid
-		uidstr, lidstr := parseUidLidMapMapToString(db)
-		return database.MediaUpdateLabelReviewUidLid(mi.Mid, uidstr, lidstr)
+		//db := parseUidLidStringToDbMap(mi.LabelReviewUid, mi.LabelReviewsLid)
+		//db[uid] = lid
+		//uidstr, lidstr := parseUidLidMapMapToString(db)
+		return database.MediaUpdateLabelReviewUidLid(mi.Mid, uid, lid)
 
 	default:
 		return errors.New(global.EMediaUnknownType)
 	}
-}
-func MediaUpdateLabelAuthorsUidLid(mid int, uid, lid []int) {
-	uidsStr, _ := json.Marshal(uid)
-	lidsStr, _ := json.Marshal(lid)
-	_ = database.MediaUpdateLabelAuthorUidLid(mid, string(uidsStr), string(lidsStr))
-}
-func MediaUpdateLabelReviewsUidLid(mid int, uid, lid []int) {
-	uidsStr, _ := json.Marshal(uid)
-	lidsStr, _ := json.Marshal(lid)
-	_ = database.MediaUpdateLabelReviewUidLid(mid, string(uidsStr), string(lidsStr))
 }
 
 func MediaAutoGenViews(dispname string) []string {
@@ -617,4 +611,45 @@ func MediaAutoGenFcode(dispname string) string {
 		}
 	}
 	return ""
+}
+func MediaDeleteLabelAll(mid int) error {
+	mi, err := database.MediaGet(mid)
+	if err != nil {
+		return err
+	}
+	if err = database.MediaRemoveLabel(mid); err != nil {
+		return err
+	}
+	return database.LabelDelete(mi.Hash)
+}
+
+func MediaSetLabelAuthorJson(mid int, jsonstr string, authorUid int) error {
+	mi, err := database.MediaGet(mid)
+	if err != nil {
+		return err
+	}
+
+	var lid int
+	li, err := database.LabelGet(mi.Hash)
+	if err != nil {
+		return err
+	}
+	if li.Data == jsonstr {
+		return errors.New("same data")
+	}
+	err = database.LabelUpdateJsonDataOnly(li.Lid, jsonstr)
+	if err != nil {
+		return err
+	}
+
+	return database.MediaUpdateLabelAuthorUidLid(mid, authorUid, lid)
+}
+func MediaGetAll() map[int][]string {
+	mis, _ := database.MediaGetAll()
+
+	data := make(map[int][]string, 0)
+	for _, v := range mis {
+		data[v.Mid] = []string{v.Hash, v.DisplayName, v.Path}
+	}
+	return data
 }

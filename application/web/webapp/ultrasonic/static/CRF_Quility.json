@@ -1,0 +1,18 @@
+{
+  "id":"VideoQuility",
+  "describe":"质量标注",
+  "autoClose":false,
+  "data": [
+  {"class":"VideoQuilityBtn","cid":"VQ1","name":"视频清晰"},
+  {"class":"VideoQuilityBtn","cid":"VQ2","name":"质量一般"},
+  {"class":"VideoQuilityBtn","cid":"VQ3","name":"视频模糊"},
+
+  {"class":"FrameQuilityBtn","cid":"FQ1","name":"本帧清晰"},
+  {"class":"FrameQuilityBtn","cid":"FQ2","name":"本帧一般"},
+  {"class":"FrameQuilityBtn","cid":"FQ3","name":"本帧模糊"},
+
+  {"class":"VideoSemanticBtn","cid":"VS1","name":"清晰指示结局"},
+  {"class":"VideoSemanticBtn","cid":"VS2","name":"需补充信息"},
+  {"class":"VideoSemanticBtn","cid":"VS3","name":"无法确定结局"}
+  ]
+}
