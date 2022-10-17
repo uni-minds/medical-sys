@@ -48,6 +48,9 @@ func (this *RpcFunc) RunCmd(req RpcRequest, res *RpcResponse) (err error) {
 	case "media":
 		res.Result, err = this.ParseMedia(params)
 
+	case "stream":
+		res.Result, err = this.ParseStream(params)
+
 	case "pacs":
 		res.Result, err = this.ParsePacs(params)
 
@@ -58,7 +61,7 @@ func (this *RpcFunc) RunCmd(req RpcRequest, res *RpcResponse) (err error) {
 		res.Result = fmt.Sprintf("1:标注中\n2:标注完成\n3:审阅中\n4:审阅完成，拒绝\n5:标注修改中\n6:标注完成修改，提交审阅\n7:审阅接受，最终状态")
 
 	case "cmds", "help":
-		res.Result = fmt.Sprintf("commands: user | group | media | label | import | pacs | progress | genjson")
+		res.Result = fmt.Sprintf("commands: user | group | media | stream | label | import | pacs | progress | genjson")
 
 	default:
 		res.Result = fmt.Sprintf("unsupported: %s, use help to get support commands", req.Command)

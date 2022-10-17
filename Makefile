@@ -1,6 +1,6 @@
-COMPILE_VER=3.0.0
+COMPILE_VER=3.0.1
 
-PREFIX := env GIT_TERMINAL_PROMPT=1
+PREFIX := env GIT_TERMINAL_PROMPT=1 GOPRIVATE=gitee.com
 FLAGS := -X 'main._BUILD_TIME_=$(shell date +"%Y-%m-%d %H:%M:%S")'
 FLAGS += -X 'main._BUILD_VER_=$(COMPILE_VER)'
 FLAGS += -X 'main._BUILD_REV_=$(shell git rev-parse --short HEAD)'

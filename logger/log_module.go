@@ -14,8 +14,7 @@ func NewLogger(tag string) *Logger {
 }
 
 func (logger *Logger) Printf(format string, a ...any) {
-	content := fmt.Sprintf(format, a...)
-	Write(logger.tag, "i", content)
+	Write(logger.tag, "i", fmt.Sprintf(format, a...))
 }
 
 func (logger *Logger) Println(contents ...any) {
@@ -25,9 +24,16 @@ func (logger *Logger) Println(contents ...any) {
 func (logger *Logger) Error(content string) {
 	Write(logger.tag, "e", content)
 }
+func (logger *Logger) Errorf(format string, a ...any) {
+	Write(logger.tag, "e", fmt.Sprintf(format, a...))
+}
 
 func (logger *Logger) Debug(content string) {
 	Write(logger.tag, "d", content)
+}
+
+func (logger *Logger) Debugf(format string, a ...any) {
+	Write(logger.tag, "d", fmt.Sprintf(format, a...))
 }
 
 func (logger *Logger) Trace(content string) {
@@ -35,6 +41,10 @@ func (logger *Logger) Trace(content string) {
 }
 func (logger *Logger) Warn(content string) {
 	Write(logger.tag, "w", content)
+}
+
+func (logger *Logger) Warnf(format string, a ...any) {
+	Write(logger.tag, "w", fmt.Sprintf(format, a...))
 }
 
 func (logger *Logger) Log(level string, message ...interface{}) {

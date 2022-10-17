@@ -1,6 +1,6 @@
 cookiemaxage: 86400
 userregister:
-    enable: false
+    enable: true
     regcode: BUAA
 ports:
     http: 8080

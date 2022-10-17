@@ -331,7 +331,7 @@ func UserCheckPassword(username, password string) (uid int) {
 		return -2 //账号未确认
 	}
 
-	result := tools.GetStringMD5(password + u.PasswordSalt)
+	result := tools.GetStringChecksum(password+u.PasswordSalt, tools.ModeChecksumMD5)
 	if u.LoginFailCount > 1 {
 		time.Sleep(3 * time.Second)
 	}
@@ -367,7 +367,7 @@ func UserSetPassword(i interface{}, password string) error {
 	}
 
 	salt := tools.RandStringFromAlphabet(20, "")
-	password = tools.GetStringMD5(password + salt)
+	password = tools.GetStringChecksum(password+salt, tools.ModeChecksumMD5)
 	return database.UserUpdatePassword(u.Uid, password, salt)
 }
 func UserChangePassword(username, oldPassword, newPassword string) (ok bool) {

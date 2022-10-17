@@ -9,7 +9,7 @@ package global
 
 import "strings"
 
-const DICOM_TYPE_US_ID = "1.2.276.0.26.1.1.1.2"
+const DICOM_TYPE_US_ID = "1.2."
 const (
 	UUID_TYPE_NORMAL = iota
 	UUID_TYPE_DICOM  = iota

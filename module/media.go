@@ -7,6 +7,7 @@
 package module
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,6 +24,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -364,7 +366,8 @@ func MediaRescan(mediaUUID string) error {
 	return nil
 }
 
-func MediaImportM3U8(groupId int, uid int, disp, videoFolder, machineId, tagView, tagCustom string) error {
+func MediaImportM3U8(groupId int, uid int, disp, videoFolder, machineId, tagView, patientId string) error {
+	var checksum string
 	vfile := path.Join(videoFolder, "video.m3u8")
 
 	width, height, frames, duration, fps, _, err := MediaGetInfoFromFile(vfile)
@@ -372,7 +375,39 @@ func MediaImportM3U8(groupId int, uid int, disp, videoFolder, machineId, tagView
 		return err
 	}
 
-	checksum, _ := tools.FileGetMD5(vfile)
+	fp, err := os.OpenFile(vfile, syscall.O_RDONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReader(fp)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			fp.Close()
+			return err
+		}
+
+		if line[0] != '#' {
+			filename := string(line[:len(line)-1])
+			fn := strings.Split(filename, ".")
+			if len(fn) > 1 && fn[1] == "ts" {
+				fp.Close()
+				target := path.Join(videoFolder, filename)
+				checksum, err = tools.GetFileChecksum(target, tools.ModeChecksumMD5)
+				if err != nil {
+					log.Errorf("get file md5: %s %s", target, err.Error())
+				} else {
+					log.Debugf("get file md5: %s %s", target, checksum)
+				}
+				break
+			}
+		}
+	}
+
+	if checksum == "" {
+		checksum, _ = tools.GetFileChecksum(vfile, tools.ModeChecksumMD5)
+	}
 
 	info := MediaInfo{
 		MediaUUID:      tools.RandString0f(32),
@@ -387,7 +422,7 @@ func MediaImportM3U8(groupId int, uid int, disp, videoFolder, machineId, tagView
 		UploadUid:      uid,
 		UploadTime:     time.Now(),
 		Memo:           "",
-		PatientId:      tagCustom,
+		PatientId:      patientId,
 		MachineId:      machineId,
 		Metadata:       "",
 		CrfDefine:      tagView,

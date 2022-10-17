@@ -31,6 +31,8 @@ func main() {
 			panic(err.Error())
 		}
 
+		fmt.Println("Connecting rpc server:", rpcServer)
+
 		// 握手
 		if err = conn.Call("RpcFunc.RunCmd", module_rpc.RpcRequest{Command: "GetVersion"}, &resp); err != nil {
 			cRed.Printf("E_RPC_CALL: %s\n", err.Error())

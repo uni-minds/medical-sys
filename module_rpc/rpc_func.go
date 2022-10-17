@@ -749,6 +749,29 @@ media check`)
 	return "ok", nil
 }
 
+func (this *RpcFunc) ParseStream(p []string) (string, error) {
+	strbuilder := strings.Builder{}
+	if len(p) == 0 {
+		return "", errors.New(`stream help:
+media sync ${CRF_tag} ${Folder}`)
+	}
+
+	switch p[0] {
+	case "sync":
+		if len(p) < 3 {
+			return "", fmt.Errorf("crf and folder must given")
+		}
+
+		list, err := module.StreamSyncFolder(p[2], p[1])
+		if err != nil {
+			return "", err
+		} else {
+			return strings.Join(list, "\n"), nil
+		}
+	}
+	return strbuilder.String(), nil
+}
+
 func (this *RpcFunc) ParseGenJson(p []string) (string, error) {
 	FileJson := "data.json"
 	FolderMedia := "media"
